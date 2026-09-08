@@ -5,6 +5,8 @@ mover, redimensionar y usar. Pensado para entornos de tmuxinator con muchas
 windows y panes, donde `Ctrl+b s` y navegar hasta el pane correcto se vuelve el
 cuello de botella.
 
+![terminal-canvas app screenshot](assets/image.png)
+
 ## Uso
 
 ```bash
