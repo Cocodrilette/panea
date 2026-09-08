@@ -1,0 +1,32 @@
+{
+  "name": "terminal-canvas",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Infinite pan/zoom canvas for tmux panes",
+  "bin": {
+    "tcv": "./bin/tcv.mjs"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/build.mjs --watch",
+    "start": "node --experimental-strip-types src/server/index.ts",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "node scripts/fix-node-pty.mjs",
+    "prestart": "node scripts/fix-node-pty.mjs",
+    "canvas": "npm run build && npm start"
+  },
+  "dependencies": {
+    "@xterm/xterm": "^5.5.0",
+    "node-pty": "^1.0.0",
+    "ws": "^8.18.0",
+    "yaml": "^2.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/ws": "^8.5.13",
+    "esbuild": "^0.24.0",
+    "playwright": "^1.63.0",
+    "typescript": "^5.7.0"
+  }
+}

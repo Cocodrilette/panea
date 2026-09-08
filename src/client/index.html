@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>terminal-canvas</title>
+    <link rel="stylesheet" href="./main.css" />
+  </head>
+  <body>
+    <div id="viewport">
+      <div id="world"></div>
+    </div>
+
+    <header id="toolbar">
+      <span class="brand">terminal&#8209;canvas</span>
+      <span class="sep"></span>
+      <button data-act="fit" title="Encajar todo (⌘0)">Fit</button>
+      <button data-act="reset" title="Zoom 100% (⌘1)">100%</button>
+      <button data-act="grid" title="Reordenar en grilla (⌘G)">Grilla</button>
+      <span id="zoom-readout">100%</span>
+      <span class="sep"></span>
+      <button data-act="new" title="Terminal nueva (⌘T)">+ Terminal</button>
+      <select id="projects" title="Arrancar un proyecto de tmuxinator">
+        <option value="">tmuxinator…</option>
+      </select>
+      <button data-act="discover" title="Re-escanear tmux (⌘R)">Rescan</button>
+      <span class="sep"></span>
+      <span id="status">conectando…</span>
+    </header>
+
+    <div id="toasts"></div>
+
+    <footer id="help">
+      arrastrar fondo o scroll · <b>pan</b> &nbsp;|&nbsp; scroll sobre una terminal · <b>su scrollback</b>
+      &nbsp;|&nbsp; ⌘/ctrl + scroll o pinch · <b>zoom</b> &nbsp;|&nbsp; click en terminal · <b>foco</b>
+      &nbsp;|&nbsp; ⌘esc o click al fondo · <b>soltar foco</b>
+    </footer>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

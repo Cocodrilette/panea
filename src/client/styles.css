@@ -1,0 +1,311 @@
+:root {
+  --bg: #0c0d11;
+  --grid: #191b23;
+  --tile: #14161c;
+  --tile-head: #1b1e26;
+  --tile-head-focus: #24304a;
+  --border: #262a34;
+  --border-focus: #4b7bec;
+  --text: #d7dae1;
+  --muted: #7e8695;
+  --accent: #6ea8fe;
+  --danger: #e06c75;
+  --radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font: 12px/1.4 ui-sans-serif, -apple-system, "SF Pro Text", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- canvas ---------- */
+
+#viewport {
+  position: fixed;
+  inset: 0;
+  cursor: grab;
+  background-color: var(--bg);
+  background-image: radial-gradient(circle at 1px 1px, var(--grid) 1px, transparent 0);
+  background-size: 32px 32px;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+#viewport.panning {
+  cursor: grabbing;
+}
+
+#world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+/* ---------- tiles ---------- */
+
+.tile {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  background: var(--tile);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 45%);
+  overflow: hidden;
+  contain: layout paint;
+}
+
+.tile.focused {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 1px var(--border-focus), 0 14px 40px rgb(0 0 0 / 55%);
+}
+
+.tile.dead {
+  opacity: 0.55;
+  filter: grayscale(0.6);
+}
+
+.tile-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 6px 0 10px;
+  background: var(--tile-head);
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+  user-select: none;
+  flex: 0 0 auto;
+}
+
+.tile.focused .tile-head {
+  background: var(--tile-head-focus);
+}
+
+.tile-head.dragging {
+  cursor: grabbing;
+}
+
+.tile-title {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.tile-sub {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
+}
+
+.tile-badge {
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+
+.tile-head button {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px 5px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.tile-head button:hover {
+  background: rgb(255 255 255 / 8%);
+  color: var(--text);
+}
+
+.tile-head button.danger:hover {
+  color: var(--danger);
+}
+
+.tile-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 4px 0 4px 6px;
+}
+
+/* The terminal only takes pointer events once the tile has focus, so a click
+   on an unfocused tile is a canvas gesture (select / drag), not a mouse report
+   sent into vim. */
+.tile:not(.focused) .terminal {
+  pointer-events: none;
+}
+
+.tile-snapshot {
+  position: absolute;
+  inset: 4px 0 4px 6px;
+  margin: 0;
+  overflow: hidden;
+  color: #aab1bf;
+  font: 12px/1.15 ui-monospace, "SF Mono", Menlo, monospace;
+  white-space: pre;
+  pointer-events: none;
+}
+
+.tile[data-lod="far"] .xterm {
+  display: none;
+}
+
+.tile[data-lod="near"] .tile-snapshot {
+  display: none;
+}
+
+.tile-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, var(--border) 50%);
+  border-bottom-right-radius: var(--radius);
+}
+
+/* ---------- chrome ---------- */
+
+#toolbar {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--tile-head) 92%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
+  z-index: 10;
+}
+
+#toolbar .brand {
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding-right: 2px;
+}
+
+#toolbar .sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+#toolbar button,
+#toolbar select {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 4px 9px;
+  font: inherit;
+  cursor: pointer;
+}
+
+#toolbar button:hover,
+#toolbar select:hover {
+  border-color: var(--accent);
+  color: #fff;
+}
+
+#zoom-readout {
+  min-width: 44px;
+  text-align: center;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+#status {
+  color: var(--muted);
+}
+
+#status.ok {
+  color: #7ec699;
+}
+
+#status.down {
+  color: var(--danger);
+}
+
+#help {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--muted);
+  font-size: 11px;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  pointer-events: none;
+  z-index: 10;
+}
+
+#help b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+#toasts {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 20;
+  max-width: 380px;
+}
+
+.toast {
+  background: var(--tile-head);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
+  animation: toast-in 0.15s ease-out;
+}
+
+.toast.warn {
+  border-left-color: #e5c07b;
+}
+
+.toast.error {
+  border-left-color: var(--danger);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
