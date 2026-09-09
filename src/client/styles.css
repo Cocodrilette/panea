@@ -205,12 +205,6 @@ body {
   z-index: 10;
 }
 
-#toolbar .brand {
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  padding-right: 2px;
-}
-
 #toolbar .sep {
   width: 1px;
   height: 16px;
@@ -235,6 +229,132 @@ body {
   color: #fff;
 }
 
+/* A dropdown's open/closed state is the `hidden` attribute; the panel rule
+   below must never set `display` unconditionally, or an ID-selector's
+   specificity beats the UA's `[hidden] { display: none }` and the panel can
+   never actually close again. */
+.popover-host {
+  position: relative;
+}
+
+.popover-trigger.active {
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.popover-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--tile-head);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
+  z-index: 30;
+  cursor: default;
+}
+
+.popover-panel:not([hidden]) {
+  display: flex;
+}
+
+#session-picker-panel {
+  width: 280px;
+  max-height: 340px;
+}
+
+#session-search {
+  background: var(--tile);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 6px 8px;
+  font: inherit;
+}
+
+#session-search:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+#session-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+#session-list li {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+#session-list li:hover,
+#session-list li:focus {
+  background: rgb(255 255 255 / 8%);
+  outline: none;
+}
+
+#session-list li.session-empty {
+  color: var(--muted);
+  cursor: default;
+}
+
+.session-item-title {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-item-sub {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#more-panel {
+  width: 170px;
+}
+
+#more-panel button,
+#more-panel select {
+  width: 100%;
+  text-align: left;
+}
+
+#help-btn {
+  font-weight: 700;
+}
+
+#help-panel {
+  width: 250px;
+}
+
+#help-panel p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+#help-panel b {
+  color: var(--text);
+  font-weight: 600;
+}
+
 #zoom-readout {
   min-width: 44px;
   text-align: center;
@@ -252,26 +372,6 @@ body {
 
 #status.down {
   color: var(--danger);
-}
-
-#help {
-  position: fixed;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: var(--muted);
-  font-size: 11px;
-  background: color-mix(in srgb, var(--bg) 80%, transparent);
-  padding: 5px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  pointer-events: none;
-  z-index: 10;
-}
-
-#help b {
-  color: var(--text);
-  font-weight: 600;
 }
 
 #toasts {

@@ -12,29 +12,47 @@
     </div>
 
     <header id="toolbar">
-      <span class="brand">terminal&#8209;canvas</span>
-      <span class="sep"></span>
       <button data-act="fit" title="Encajar todo (⌘0)">Fit</button>
-      <button data-act="reset" title="Zoom 100% (⌘1)">100%</button>
-      <button data-act="grid" title="Reordenar en grilla (⌘G)">Grilla</button>
-      <span id="zoom-readout">100%</span>
-      <span class="sep"></span>
+
+      <div class="popover-host" id="session-picker">
+        <button type="button" id="session-picker-btn" class="popover-trigger" title="Ir a una sesión activa (⌘K)">Sesiones ▾</button>
+        <div class="popover-panel" id="session-picker-panel" hidden>
+          <input type="text" id="session-search" placeholder="Buscar sesión…" autocomplete="off" spellcheck="false" />
+          <ul id="session-list"></ul>
+        </div>
+      </div>
+
       <button data-act="new" title="Terminal nueva (⌘T)">+ Terminal</button>
-      <select id="projects" title="Arrancar un proyecto de tmuxinator">
-        <option value="">tmuxinator…</option>
-      </select>
-      <button data-act="discover" title="Re-escanear tmux (⌘R)">Rescan</button>
       <span class="sep"></span>
+
+      <button type="button" id="zoom-readout" data-act="reset" title="Zoom 100% (⌘1)">100%</button>
       <span id="status">conectando…</span>
+
+      <div class="popover-host" id="more-menu">
+        <button type="button" id="more-btn" class="popover-trigger" title="Más acciones">⋯</button>
+        <div class="popover-panel popover-panel--menu" id="more-panel" hidden>
+          <button data-act="grid" title="Reordenar en grilla (⌘G)">Grilla</button>
+          <button data-act="discover" title="Re-escanear tmux (⌘R)">Rescan</button>
+          <select id="projects" title="Arrancar un proyecto de tmuxinator">
+            <option value="">tmuxinator…</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="popover-host" id="help-menu">
+        <button type="button" id="help-btn" class="popover-trigger" title="Atajos">?</button>
+        <div class="popover-panel popover-panel--help" id="help-panel" hidden>
+          <p>arrastrar fondo o scroll → <b>pan</b></p>
+          <p>scroll sobre una terminal → <b>su scrollback</b></p>
+          <p>⌘/ctrl + scroll o pinch → <b>zoom</b></p>
+          <p>click en terminal → <b>foco</b></p>
+          <p>⌘esc o click al fondo → <b>soltar foco</b></p>
+          <p>⌘K → <b>buscar sesión</b></p>
+        </div>
+      </div>
     </header>
 
     <div id="toasts"></div>
-
-    <footer id="help">
-      arrastrar fondo o scroll · <b>pan</b> &nbsp;|&nbsp; scroll sobre una terminal · <b>su scrollback</b>
-      &nbsp;|&nbsp; ⌘/ctrl + scroll o pinch · <b>zoom</b> &nbsp;|&nbsp; click en terminal · <b>foco</b>
-      &nbsp;|&nbsp; ⌘esc o click al fondo · <b>soltar foco</b>
-    </footer>
 
     <script type="module" src="./main.js"></script>
   </body>

@@ -13,9 +13,12 @@ const GAP = 32
 const root = document.getElementById('viewport') as HTMLDivElement
 const world = document.getElementById('world') as HTMLDivElement
 const statusEl = document.getElementById('status') as HTMLSpanElement
-const zoomEl = document.getElementById('zoom-readout') as HTMLSpanElement
+const zoomEl = document.getElementById('zoom-readout') as HTMLButtonElement
 const projectsEl = document.getElementById('projects') as HTMLSelectElement
 const toastsEl = document.getElementById('toasts') as HTMLDivElement
+const sessionPanelEl = document.getElementById('session-picker-panel') as HTMLDivElement
+const sessionSearchEl = document.getElementById('session-search') as HTMLInputElement
+const sessionListEl = document.getElementById('session-list') as HTMLUListElement
 
 /** Shared by reference with every tile, so a correction propagates. */
 const cell: Cell = measureCell()
@@ -121,6 +124,7 @@ function syncTiles(specs: TileSpec[]): void {
   }
 
   updateLod()
+  if (!sessionPanelEl.hidden) renderSessionList()
 }
 
 function addTile(spec: TileSpec): void {
@@ -330,6 +334,108 @@ function updateLod(): void {
   for (const tile of tiles.values()) tile.setLod(far && tile !== focused ? 'far' : 'near')
 }
 
+/* --------------------------------- popovers -------------------------------- */
+
+/**
+ * A trigger button + floating panel, toggled by click, dismissed by an
+ * outside click or Escape. `panel.hidden` is the single source of truth for
+ * open/closed — CSS must only ever key off that attribute (see .popover-panel).
+ */
+function createPopover(hostId: string, triggerId: string, panelId: string, onOpen?: () => void) {
+  const host = document.getElementById(hostId) as HTMLDivElement
+  const trigger = document.getElementById(triggerId) as HTMLButtonElement
+  const panel = document.getElementById(panelId) as HTMLDivElement
+
+  function open(): void {
+    panel.hidden = false
+    trigger.classList.add('active')
+    onOpen?.()
+  }
+  function close(): void {
+    panel.hidden = true
+    trigger.classList.remove('active')
+  }
+
+  trigger.addEventListener('click', (ev) => {
+    ev.stopPropagation()
+    if (panel.hidden) open()
+    else close()
+  })
+  document.addEventListener('pointerdown', (ev) => {
+    if (!panel.hidden && !host.contains(ev.target as Node)) close()
+  })
+  host.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') {
+      ev.stopPropagation()
+      close()
+    }
+  })
+
+  return { open, close }
+}
+
+const sessionPopover = createPopover('session-picker', 'session-picker-btn', 'session-picker-panel', () => {
+  sessionQuery = ''
+  sessionSearchEl.value = ''
+  renderSessionList()
+  sessionSearchEl.focus()
+})
+createPopover('more-menu', 'more-btn', 'more-panel')
+createPopover('help-menu', 'help-btn', 'help-panel')
+
+/* ------------------------------ session picker ---------------------------- */
+
+let sessionQuery = ''
+
+function renderSessionList(): void {
+  const q = sessionQuery.trim().toLowerCase()
+  const list = [...tiles.values()]
+    .filter((t) => !q || `${t.spec.title} ${t.spec.subtitle} ${t.spec.session}`.toLowerCase().includes(q))
+    .sort((a, b) => a.spec.title.localeCompare(b.spec.title))
+
+  sessionListEl.textContent = ''
+  if (!list.length) {
+    const empty = document.createElement('li')
+    empty.className = 'session-empty'
+    empty.textContent = 'sin resultados'
+    sessionListEl.appendChild(empty)
+    return
+  }
+
+  for (const tile of list) {
+    const li = document.createElement('li')
+    li.tabIndex = 0
+    const title = document.createElement('span')
+    title.className = 'session-item-title'
+    title.textContent = tile.spec.title
+    const sub = document.createElement('span')
+    sub.className = 'session-item-sub'
+    sub.textContent = tile.spec.subtitle
+    li.append(title, sub)
+    const select = () => {
+      zoomToTile(tile)
+      sessionPopover.close()
+    }
+    li.addEventListener('click', select)
+    li.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') select()
+    })
+    sessionListEl.appendChild(li)
+  }
+}
+
+sessionSearchEl.addEventListener('input', () => {
+  sessionQuery = sessionSearchEl.value
+  renderSessionList()
+})
+
+sessionSearchEl.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter') {
+    const first = sessionListEl.querySelector('li:not(.session-empty)') as HTMLLIElement | null
+    first?.click()
+  }
+})
+
 setInterval(() => {
   for (const tile of tiles.values()) if (tile.isFar) tile.refreshSnapshot()
 }, SNAPSHOT_MS)
@@ -432,6 +538,10 @@ window.addEventListener('keydown', (ev) => {
   } else if (mod && (ev.key === 'r' || ev.key === 'R')) {
     ev.preventDefault()
     sendMsg({ type: 'discover' })
+  } else if (mod && (ev.key === 'k' || ev.key === 'K')) {
+    ev.preventDefault()
+    if (sessionPanelEl.hidden) sessionPopover.open()
+    else sessionPopover.close()
   } else if (ev.key === 'Escape' && mod) {
     // Escape alone belongs to the terminal (vim); ⌘/ctrl+esc drops focus.
     ev.preventDefault()
