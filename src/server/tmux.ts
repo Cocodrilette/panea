@@ -8,7 +8,7 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { basename } from 'node:path'
-import type { TileSpec } from '../shared/protocol.ts'
+import { SCROLLBACK_LINES, type TileSpec } from '../shared/protocol.ts'
 
 const exec = promisify(execFile)
 
@@ -148,10 +148,16 @@ export async function paneGeometry(paneId: string): Promise<{ cols: number; rows
 }
 
 /** Current screen contents of a pane, escape sequences included. */
+/**
+ * Repaint a tile from scratch: the visible screen plus as much scrollback as
+ * the client can hold. Without `-S` this only grabs the current screen,
+ * which is all a browser reload ever saw — the rest of the pane's history
+ * stayed in tmux until the user reattached from a native terminal.
+ */
 export async function capturePane(paneId: string): Promise<string> {
   try {
-    const { stdout } = await exec('tmux', ['capture-pane', '-p', '-e', '-t', paneId], {
-      maxBuffer: 8 * 1024 * 1024,
+    const { stdout } = await exec('tmux', ['capture-pane', '-p', '-e', '-S', `-${SCROLLBACK_LINES}`, '-t', paneId], {
+      maxBuffer: 32 * 1024 * 1024,
     })
     return stdout.replace(/\n/g, '\r\n')
   } catch {

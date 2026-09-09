@@ -1,5 +1,14 @@
 /** Wire protocol shared by the control-mode server and the canvas client. */
 
+/**
+ * How many lines of history a tile keeps, on both ends: xterm's own
+ * scrollback buffer and how far back the server re-captures a pane's
+ * content when a browser (re)connects. Keeping them equal means a reload
+ * restores exactly as much as the client can actually scroll back through —
+ * capturing more from tmux would just be discarded.
+ */
+export const SCROLLBACK_LINES = 5000
+
 export interface TileSpec {
   /** Stable id: tmux:<session>/<window name>/<pane index>. */
   id: string

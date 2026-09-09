@@ -1,5 +1,5 @@
 import { Terminal } from '@xterm/xterm'
-import type { TileBox, TileSpec } from '../shared/protocol.ts'
+import { SCROLLBACK_LINES, type TileBox, type TileSpec } from '../shared/protocol.ts'
 import {
   FONT_FAMILY,
   FONT_SIZE,
@@ -121,7 +121,7 @@ export class Tile {
       lineHeight: LINE_HEIGHT,
       theme: THEME,
       cursorBlink: true,
-      scrollback: 5000,
+      scrollback: SCROLLBACK_LINES,
       macOptionIsMeta: true,
       allowProposedApi: true,
     })
