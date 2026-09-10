@@ -1,4 +1,5 @@
 import { Terminal } from '@xterm/xterm'
+import { WebLinksAddon } from '@xterm/addon-web-links'
 import { SCROLLBACK_LINES, type TileBox, type TileSpec } from '../shared/protocol.ts'
 import {
   FONT_FAMILY,
@@ -129,6 +130,7 @@ export class Tile {
     this.term.onData((data) => handlers.onInput(this.spec.id, data))
     // Canvas-level shortcuts must win even while a terminal has the keyboard.
     this.term.attachCustomKeyEventHandler((ev) => !(ev.metaKey || (ev.ctrlKey && ev.altKey)))
+    this.term.loadAddon(new WebLinksAddon())
 
     this.update(spec)
     this.applyBox()
