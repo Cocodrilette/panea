@@ -302,16 +302,23 @@ export async function killPane(spec: TileSpec): Promise<void> {
  * session, so the next discovery pass turns it into a tile like any other —
  * and it survives a canvas restart.
  */
-export async function spawnShell(cwd: string, command: string | undefined, cols: number, rows: number): Promise<string> {
+export async function spawnShell(
+  cwd: string,
+  command: string | undefined,
+  cols: number,
+  rows: number,
+  displayName?: string,
+): Promise<string> {
   const name = `${SHELL_PREFIX}${Date.now().toString(36)}`
   const dir = cwd || process.env.HOME || '.'
+  const label = displayName?.trim().slice(0, 20)
   await tmux([
     'new-session',
     '-d',
     '-s',
     name,
     '-n',
-    command ? command.split(/\s+/)[0].slice(0, 20) : 'canvas',
+    label || (command ? command.split(/\s+/)[0].slice(0, 20) : 'canvas'),
     '-c',
     dir,
     '-x',

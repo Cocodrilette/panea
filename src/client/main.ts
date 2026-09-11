@@ -499,6 +499,13 @@ projectsEl.addEventListener('change', () => {
   sendMsg({ type: 'start-project', name })
 })
 
+/** So a fresh terminal has a name in the session picker instead of the generic "canvas". */
+function spawnNamed(): void {
+  const name = prompt('Nombre para la terminal (opcional):')
+  if (name === null) return
+  sendMsg({ type: 'spawn', name: name.trim() || undefined })
+}
+
 document.getElementById('toolbar')?.addEventListener('click', (ev) => {
   const act = (ev.target as HTMLElement).closest('button')?.dataset.act
   switch (act) {
@@ -512,7 +519,7 @@ document.getElementById('toolbar')?.addEventListener('click', (ev) => {
       packTiles()
       break
     case 'new':
-      sendMsg({ type: 'spawn' })
+      spawnNamed()
       break
     case 'discover':
       layout.hidden = []
@@ -534,7 +541,7 @@ window.addEventListener('keydown', (ev) => {
     packTiles()
   } else if (mod && (ev.key === 't' || ev.key === 'T')) {
     ev.preventDefault()
-    sendMsg({ type: 'spawn' })
+    spawnNamed()
   } else if (mod && (ev.key === 'r' || ev.key === 'R')) {
     ev.preventDefault()
     sendMsg({ type: 'discover' })

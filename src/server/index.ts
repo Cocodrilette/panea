@@ -279,7 +279,7 @@ wss.on('connection', async (ws) => {
         }
 
         case 'spawn':
-          await spawnShell(msg.cwd ?? process.env.HOME ?? '.', msg.command, 100, 30)
+          await spawnShell(msg.cwd ?? process.env.HOME ?? '.', msg.command, 100, 30, msg.name)
           await pushTiles()
           break
 

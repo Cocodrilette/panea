@@ -62,7 +62,7 @@ export type ClientMessage =
   | { type: 'discover' }
   /** Break this pane into its own window so its size stops being coupled. */
   | { type: 'decouple'; id: string }
-  | { type: 'spawn'; cwd?: string; command?: string }
+  | { type: 'spawn'; cwd?: string; command?: string; name?: string }
   | { type: 'start-project'; name: string }
   | { type: 'kill'; id: string }
 
