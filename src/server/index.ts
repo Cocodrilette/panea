@@ -8,7 +8,7 @@
  * window — or its processes — alive behind the user's back: when a session is
  * destroyed its control client exits and the tiles die with it.
  */
-import { createServer } from 'node:http'
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -31,6 +31,7 @@ import {
   spawnShell,
 } from './tmux.ts'
 import { listProjects, loadLayout, saveLayout, startProject } from './store.ts'
+import { MAX_UPLOAD_BYTES, isSupportedImage, saveImage } from './uploads.ts'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const DIST = join(ROOT, 'dist')
@@ -61,8 +62,77 @@ const MIME: Record<string, string> = {
   '.svg': 'image/svg+xml',
 }
 
+const tooBig = (limit: number) => new Error(`la imagen supera el límite de ${Math.round(limit / 1024 / 1024)} MB`)
+
+/** Buffer a request body, refusing anything past `limit` instead of buffering it. */
+function readBody(req: IncomingMessage, limit: number): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = []
+    let size = 0
+    req.on('data', (chunk: Buffer) => {
+      size += chunk.length
+      if (size > limit) {
+        // Stop reading, but leave the socket alive: the caller still has an
+        // explanation to send back, and a destroyed socket reaches the
+        // browser as a bare network error.
+        req.pause()
+        reject(tooBig(limit))
+        return
+      }
+      chunks.push(chunk)
+    })
+    req.on('end', () => resolve(Buffer.concat(chunks)))
+    req.on('error', reject)
+  })
+}
+
+/**
+ * Land a dropped or pasted image on disk and answer with its absolute path,
+ * which the client then types into the pane. The bytes go up raw with the
+ * type in the headers — no multipart parser earns its keep for one file.
+ */
+async function handleUpload(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  /** Answer and hang up, so a body we stopped reading cannot stall the socket. */
+  const reject = (code: number, message: string) => {
+    res.writeHead(code, { 'content-type': 'application/json; charset=utf-8', connection: 'close' })
+    res.end(JSON.stringify({ error: message }))
+  }
+
+  const mime = String(req.headers['content-type'] ?? '')
+  if (!isSupportedImage(mime)) {
+    reject(415, `tipo de imagen no soportado: ${mime || 'desconocido'}`)
+    return
+  }
+
+  // The browser always declares the size of a File body, so an oversized drop
+  // is turned away before a single byte of it is read.
+  if (Number(req.headers['content-length'] ?? 0) > MAX_UPLOAD_BYTES) {
+    reject(413, tooBig(MAX_UPLOAD_BYTES).message)
+    return
+  }
+
+  try {
+    const data = await readBody(req, MAX_UPLOAD_BYTES)
+    if (!data.length) {
+      reject(400, 'la imagen llegó vacía')
+      return
+    }
+    const name = decodeURIComponent(String(req.headers['x-filename'] ?? ''))
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+    res.end(JSON.stringify({ path: saveImage(data, mime, name || undefined) }))
+  } catch (err) {
+    reject(413, err instanceof Error ? err.message : String(err))
+  }
+}
+
 const http = createServer(async (req, res) => {
   const path = decodeURIComponent((req.url ?? '/').split('?')[0])
+
+  if (req.method === 'POST' && path === '/upload') {
+    await handleUpload(req, res)
+    return
+  }
+
   const rel = path === '/' ? 'index.html' : normalize(path).replace(/^(\.\.[/\\])+/, '').replace(/^[/\\]+/, '')
   try {
     const body = await readFile(join(DIST, rel))

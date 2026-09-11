@@ -2,6 +2,7 @@ import '@xterm/xterm/css/xterm.css'
 import './styles.css'
 
 import type { ClientMessage, Layout, ServerMessage, TileBox, TileSpec } from '../shared/protocol.ts'
+import { hasFiles, imagesFrom, quotePath, uploadImage } from './images.ts'
 import { measureCell, snapSize, type Cell } from './metrics.ts'
 import { Tile } from './tile.ts'
 import { Viewport, type Rect } from './viewport.ts'
@@ -142,6 +143,7 @@ function addTile(spec: TileSpec): void {
     onKill: (t) => killTile(t),
     onDecouple: (t) => decouplePane(t),
     onZoomTo: (t) => zoomToTile(t),
+    onImages: (t, files) => void pasteImages(t, files),
     onMeasured: (real) => adoptCell(real),
     unscaled: (fn) => viewport.unscaled(fn),
   })
@@ -229,6 +231,60 @@ function raise(tile: Tile): void {
   tile.applyBox()
   saveLayout()
 }
+
+/* --------------------------------- images -------------------------------- */
+
+/**
+ * Turn images dropped on (or pasted into) a tile into what a native terminal
+ * would have produced: their paths, typed at the prompt. No Enter — the user
+ * still has a message to write around them.
+ */
+async function pasteImages(tile: Tile, files: File[]): Promise<void> {
+  if (!files.length) {
+    toast('solo se pueden soltar imágenes', 'warn')
+    return
+  }
+
+  focus(tile)
+  const pending = toast(files.length === 1 ? 'subiendo imagen…' : `subiendo ${files.length} imágenes…`, 'info', 0)
+
+  const paths: string[] = []
+  for (const file of files) {
+    try {
+      paths.push(await uploadImage(file))
+    } catch (err) {
+      toast(`no pude subir "${file.name || 'imagen'}": ${err instanceof Error ? err.message : err}`, 'error')
+    }
+  }
+
+  pending.remove()
+  if (!paths.length) return
+
+  // A trailing space so the next thing typed does not glue itself to the path.
+  sendMsg({ type: 'input', id: tile.spec.id, data: `${paths.map(quotePath).join(' ')} ` })
+  toast(paths.length === 1 ? 'ruta pegada en la terminal' : `${paths.length} rutas pegadas en la terminal`)
+}
+
+// A file dropped anywhere else would otherwise make the browser navigate to
+// it, losing the canvas. Dropped on the background it goes to the focused
+// terminal, which is the only one that could have wanted it.
+window.addEventListener('dragover', (ev) => {
+  if (hasFiles(ev.dataTransfer)) ev.preventDefault()
+})
+
+window.addEventListener('drop', (ev) => {
+  if (!hasFiles(ev.dataTransfer)) return
+  // A tile that took the drop itself already called preventDefault, and this
+  // has to be read before we call it ourselves.
+  const claimed = ev.defaultPrevented
+  ev.preventDefault()
+  if (claimed) return
+  if (!focused) {
+    toast('arrastra la imagen sobre una terminal', 'warn')
+    return
+  }
+  void pasteImages(focused, imagesFrom(ev.dataTransfer))
+})
 
 /* -------------------------------- placement ------------------------------- */
 
@@ -469,12 +525,15 @@ function warn(message: string): void {
   toast(message, 'warn')
 }
 
-function toast(message: string, kind: 'info' | 'warn' | 'error' = 'info'): void {
+/** `ms` of 0 keeps the toast up until the caller removes it. */
+function toast(message: string, kind: 'info' | 'warn' | 'error' = 'info', ms?: number): HTMLDivElement {
   const el = document.createElement('div')
   el.className = `toast ${kind}`
   el.textContent = message
   toastsEl.appendChild(el)
-  setTimeout(() => el.remove(), kind === 'error' ? 9000 : 6000)
+  const life = ms ?? (kind === 'error' ? 9000 : 6000)
+  if (life > 0) setTimeout(() => el.remove(), life)
+  return el
 }
 
 function fillProjects(projects: string[]): void {

@@ -176,6 +176,30 @@ body {
   display: none;
 }
 
+/* Shown while a file is dragged over a terminal. Transparent to pointer
+   events so the drag keeps reaching .tile-body underneath. */
+.tile-drop {
+  display: none;
+  position: absolute;
+  inset: 4px 0 4px 6px;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--accent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* An author `display` would otherwise outrank the UA rule for [hidden]. */
+.tile-drop:not([hidden]) {
+  display: flex;
+}
+
 .tile-resize {
   position: absolute;
   right: 0;

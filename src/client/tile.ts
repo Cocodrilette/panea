@@ -1,6 +1,7 @@
 import { Terminal } from '@xterm/xterm'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { SCROLLBACK_LINES, type TileBox, type TileSpec } from '../shared/protocol.ts'
+import { hasFiles, imagesFrom } from './images.ts'
 import {
   FONT_FAMILY,
   FONT_SIZE,
@@ -24,6 +25,8 @@ export interface TileHandlers {
   onKill(tile: Tile): void
   onDecouple(tile: Tile): void
   onZoomTo(tile: Tile): void
+  /** Images dropped on, or pasted into, this tile. */
+  onImages(tile: Tile, files: File[]): void
   /** Reports the real cell size of the first terminal that mounts. */
   onMeasured(cell: Cell): void
   /** Runs `fn` with the world transform neutralised, for correct measuring. */
@@ -67,6 +70,7 @@ export class Tile {
   private readonly titleEl: HTMLSpanElement
   private readonly subEl: HTMLSpanElement
   private readonly badgeEl: HTMLSpanElement
+  private readonly dropEl: HTMLDivElement
   private cols = 0
   private rows = 0
   private lod: 'near' | 'far' = 'near'
@@ -109,7 +113,13 @@ export class Tile {
 
     this.snapshotEl = document.createElement('pre')
     this.snapshotEl.className = 'tile-snapshot'
-    this.body.appendChild(this.snapshotEl)
+
+    this.dropEl = document.createElement('div')
+    this.dropEl.className = 'tile-drop'
+    this.dropEl.textContent = 'Soltar imagen para pegar su ruta'
+    this.dropEl.hidden = true
+
+    this.body.append(this.snapshotEl, this.dropEl)
 
     const resize = document.createElement('div')
     resize.className = 'tile-resize'
@@ -136,6 +146,7 @@ export class Tile {
     this.applyBox()
     this.wireDrag(head)
     this.wireResize(resize)
+    this.wireImages()
 
     this.body.addEventListener('pointerdown', () => handlers.onFocus(this), true)
   }
@@ -259,6 +270,61 @@ export class Tile {
       lines.push(buf.getLine(i)?.translateToString(true) ?? '')
     }
     this.snapshotEl.textContent = lines.join('\n')
+  }
+
+  /**
+   * Drag-and-drop and paste of images. A browser gives us bytes, not a path,
+   * so both roads end at the same place: hand the files up, and whatever
+   * comes back gets typed into the pane.
+   */
+  private wireImages(): void {
+    // dragenter/dragleave also fire crossing the terminal's inner elements,
+    // so the overlay is driven by a depth count, not by the last event seen.
+    let depth = 0
+    const hideDrop = () => {
+      depth = 0
+      this.dropEl.hidden = true
+    }
+
+    this.body.addEventListener('dragenter', (ev) => {
+      if (!hasFiles(ev.dataTransfer)) return
+      ev.preventDefault()
+      depth++
+      this.dropEl.hidden = false
+    })
+
+    this.body.addEventListener('dragover', (ev) => {
+      if (!hasFiles(ev.dataTransfer)) return
+      ev.preventDefault()
+      if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy'
+    })
+
+    this.body.addEventListener('dragleave', () => {
+      if (--depth <= 0) hideDrop()
+    })
+
+    this.body.addEventListener('drop', (ev) => {
+      if (!hasFiles(ev.dataTransfer)) return
+      // Claiming the drop here is also what tells the window-level handler
+      // not to fall back to the focused tile.
+      ev.preventDefault()
+      hideDrop()
+      this.handlers.onImages(this, imagesFrom(ev.dataTransfer))
+    })
+
+    // Capturing, and on the tile rather than the textarea, so an image on the
+    // clipboard never reaches xterm — which would paste its filename as text.
+    this.el.addEventListener(
+      'paste',
+      (ev: ClipboardEvent) => {
+        const files = imagesFrom(ev.clipboardData)
+        if (!files.length) return
+        ev.preventDefault()
+        ev.stopPropagation()
+        this.handlers.onImages(this, files)
+      },
+      true,
+    )
   }
 
   private wireDrag(head: HTMLElement): void {

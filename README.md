@@ -29,6 +29,7 @@ no duplica servidores ni pelea por los puertos.
 | esquina inferior derecha | redimensionar (ajusta cols/rows reales del pane) |
 | ⌘0 / ⌘1 / ⌘G | encajar todo / zoom 100% / reempaquetar |
 | ⌘T / ⌘R | terminal nueva / re-escanear tmux |
+| arrastrar o pegar una imagen sobre una terminal | escribir su ruta en el prompt |
 
 Botones de cada tile: `⤢` zoom a esa terminal, `⧉` sacar el pane a su propia
 window para desacoplar su tamaño, `✕` quitar del canvas (el proceso sigue vivo),
@@ -36,6 +37,19 @@ window para desacoplar su tamaño, `✕` quitar del canvas (el proceso sigue viv
 
 El layout (posición y cámara) se guarda en
 `~/.config/terminal-canvas/layout.json` y se restaura al abrir.
+
+### Imágenes
+
+Arrastrar una imagen sobre una terminal —o pegarla con ⌘V teniéndola en el
+portapapeles— escribe su **ruta absoluta** en el prompt, que es exactamente lo
+que produce una terminal nativa cuando le sueltas un archivo. Así Claude Code,
+un editor u `open` la leen sin más. No se manda Enter: la ruta queda escrita
+para que termines de redactar alrededor.
+
+El navegador solo entrega bytes, nunca una ruta local utilizable, así que la
+imagen sube al servidor y aterriza en `~/.config/terminal-canvas/images/`.
+Son datos de paso: se borran solas a los 7 días. Formatos: PNG, JPEG, GIF,
+WebP, AVIF, BMP, TIFF, HEIC y SVG, hasta 25 MB.
 
 ## Cómo funciona
 
@@ -87,8 +101,10 @@ src/server/index.ts    servidor HTTP + WebSocket, rutas pane → navegador
 src/server/control.ts  cliente de tmux control mode (protocolo de líneas)
 src/server/tmux.ts     descubrimiento, dimensionado y ciclo de vida
 src/server/store.ts    layout persistido y proyectos de tmuxinator
+src/server/uploads.ts  imágenes soltadas/pegadas, guardadas en disco
 src/client/viewport.ts cámara pan/zoom (una sola CSS transform)
-src/client/tile.ts     tile: xterm, drag, resize, snapshot
+src/client/tile.ts     tile: xterm, drag, resize, snapshot, drop de imágenes
+src/client/images.ts   subida de imágenes y la ruta que se teclea
 src/client/metrics.ts  medición del tamaño de celda
 src/shared/protocol.ts protocolo del WebSocket
 ```
