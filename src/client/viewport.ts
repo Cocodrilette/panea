@@ -96,7 +96,64 @@ export class Viewport {
     this.apply()
   }
 
+  /**
+   * xterm computes its own mouse→cell math from `.xterm-screen`'s
+   * getBoundingClientRect (which reflects our CSS zoom) divided by its
+   * internal, unscaled cell size — so at any zoom other than 100% it picks
+   * the wrong row/column (selection drifts up/down as you drag). There is no
+   * public API to tell xterm about an ancestor transform, so mouse events
+   * aimed at a terminal are intercepted ahead of xterm's own listeners and
+   * redispatched with clientX/Y rescaled around the screen element, as if
+   * the world were unscaled.
+   */
+  private wireTerminalCoordFix(): void {
+    const CORRECTED = '__vpCorrected'
+
+    const fix = (ev: MouseEvent): void => {
+      if (Object.prototype.hasOwnProperty.call(ev, CORRECTED) || this.zoom === 1) return
+      const target = ev.target as Element | null
+      const screen = target?.closest('.tile')?.querySelector('.xterm-screen')
+      if (!screen) return
+
+      const rect = screen.getBoundingClientRect()
+      const clientX = rect.left + (ev.clientX - rect.left) / this.zoom
+      const clientY = rect.top + (ev.clientY - rect.top) / this.zoom
+
+      ev.stopPropagation()
+      // xterm's own handler would preventDefault to stop the native text
+      // selection it replaces with its own — but that never runs now, since
+      // the event it sees is the corrected copy below, not this one.
+      if (ev.type === 'mousedown' && ev.button === 0) ev.preventDefault()
+
+      const corrected = new MouseEvent(ev.type, {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        detail: ev.detail,
+        clientX,
+        clientY,
+        button: ev.button,
+        buttons: ev.buttons,
+        ctrlKey: ev.ctrlKey,
+        shiftKey: ev.shiftKey,
+        altKey: ev.altKey,
+        metaKey: ev.metaKey,
+        relatedTarget: ev.relatedTarget,
+      })
+      Object.defineProperty(corrected, CORRECTED, { value: true })
+      ev.target?.dispatchEvent(corrected)
+    }
+
+    // Capturing + attached to window so this always runs before xterm's own
+    // listeners, which sit on the terminal element and on `document`.
+    for (const type of ['mousedown', 'mousemove', 'mouseup'] as const) {
+      window.addEventListener(type, fix, true)
+    }
+  }
+
   private wire(): void {
+    this.wireTerminalCoordFix()
+
     this.root.addEventListener('pointerdown', (ev) => {
       const onBackground = ev.target === this.root || ev.target === this.world
       if (!onBackground || ev.button === 2) return
