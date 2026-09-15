@@ -379,13 +379,56 @@ if (!(await serverRunning())) {
   if (pruned) console.log(`[tcv] limpié ${pruned} sesión(es) del diseño anterior`)
 }
 
-http.listen(PORT, HOST, () => {
-  const url = `http://${HOST}:${PORT}`
-  console.log(`[tcv] terminal-canvas en ${url}`)
-  if (!process.env.TCV_NO_OPEN && process.platform === 'darwin') {
-    spawnProcess('open', [url], { stdio: 'ignore', detached: true }).unref()
-  }
+const URL_SELF = `http://${HOST}:${PORT}`
+
+function openInBrowser(): void {
+  if (process.env.TCV_NO_OPEN || process.platform !== 'darwin') return
+  spawnProcess('open', [URL_SELF], { stdio: 'ignore', detached: true }).unref()
+}
+
+/** Espera de reintento cuando el puerto está ocupado y toca esperarlo. */
+const RETRY_MS = 5000
+let waitingForPort = false
+
+// ws reenvía los errores del servidor http a su propia instancia, así que un
+// EADDRINUSE moriría aquí como 'error' sin capturar antes de que el manejador
+// de abajo alcance a reintentar.
+wss.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code !== 'EADDRINUSE') console.error('[tcv] websocket:', err)
 })
+
+http.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code !== 'EADDRINUSE') throw err
+
+  // Una corrida manual y el LaunchAgent se pelean el mismo puerto. El que
+  // llega de segundas no debería morir ruidosamente: en primer plano basta
+  // con mandar al usuario al servidor que ya existe.
+  if (!process.env.TCV_WAIT_PORT) {
+    console.log(`[tcv] ya hay un terminal-canvas en ${URL_SELF} — abro ese`)
+    openInBrowser()
+    process.exit(0)
+  }
+
+  // Bajo launchd, en cambio, esperamos: morir aquí sólo consigue que launchd
+  // nos reinicie en bucle, y el puerto se libera en cuanto el otro termina.
+  if (!waitingForPort) {
+    waitingForPort = true
+    console.log(`[tcv] ${PORT} ocupado — espero a que se libere`)
+  }
+  // Sin unref: mientras esperamos, este timer es lo único que sostiene el
+  // proceso — un listen fallido no deja handles abiertos.
+  setTimeout(() => http.listen(PORT, HOST), RETRY_MS)
+})
+
+// 'listening' y no el callback de listen(): el callback es one-shot y se
+// consume en el primer intento, así que un reintento exitoso sería mudo.
+http.on('listening', () => {
+  waitingForPort = false
+  console.log(`[tcv] terminal-canvas en ${URL_SELF}`)
+  openInBrowser()
+})
+
+http.listen(PORT, HOST)
 
 let shuttingDown = false
 
