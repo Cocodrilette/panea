@@ -51,6 +51,35 @@ imagen sube al servidor y aterriza en `~/.config/terminal-canvas/images/`.
 Son datos de paso: se borran solas a los 7 días. Formatos: PNG, JPEG, GIF,
 WebP, AVIF, BMP, TIFF, HEIC y SVG, hasta 25 MB.
 
+## Como app instalada
+
+El canvas se instala como PWA: ventana propia, ícono en el Dock, ⌘Tab como una
+app aparte y sin barra de direcciones. Es el mismo Chrome y el mismo renderer
+que la pestaña, así que no cuesta nada de rendimiento.
+
+```bash
+npm run autostart    # LaunchAgent: mantiene el servidor vivo y lo arranca al login
+```
+
+Después abre `http://127.0.0.1:7788` en Chrome e instálala con el ícono de la
+barra de direcciones (o ⋮ → *Enviar, compartir y más* → *Instalar página como
+app*). `npm run autostart:off` lo desinstala y `npm run autostart:status` dice
+qué opina launchd; los logs quedan en `~/Library/Logs/terminal-canvas.log`.
+
+El agente congela la ruta del node actual: si cambias de versión con nvm, vuelve
+a correr `npm run autostart`. Y como deja el puerto tomado, `npm run canvas` ya
+no falla: ve que hay un servidor y abre el navegador contra ese. Al revés
+también — el agente espera a que sueltes el puerto y lo retoma en segundos.
+
+Dos cosas que la ventana PWA no te da: Chrome se queda con ⌘W (cierra) y con su
+menú de recarga, así que si algún atajo no llega a la app, el menú `⋯` tiene los
+mismos comandos. Y el service worker cachea sólo el shell (network-first, para
+que `npm run dev` no te sirva el `main.js` de ayer): si el servidor no está, la
+ventana abre igual pero sin tiles.
+
+Los íconos se regeneran con `npm run icons` (dibuja un SVG con el chromium de
+playwright y escribe `assets/icons/*.png`, que sí se versionan).
+
 ## Cómo funciona
 
 - **Un tile = un pane, vía control mode.** El servidor abre un cliente
@@ -106,6 +135,9 @@ src/client/viewport.ts cámara pan/zoom (una sola CSS transform)
 src/client/tile.ts     tile: xterm, drag, resize, snapshot, drop de imágenes
 src/client/images.ts   subida de imágenes y la ruta que se teclea
 src/client/metrics.ts  medición del tamaño de celda
+src/client/sw.js       service worker de la PWA (shell cacheado, network-first)
+src/client/manifest.webmanifest
+                       manifiesto de la PWA
 src/shared/protocol.ts protocolo del WebSocket
 ```
 
@@ -137,5 +169,14 @@ extra, y que un arrastre enorme no deje a un pane hermano en una fila.
 - El servidor corre TypeScript directo con `--experimental-strip-types`, que no
   soporta *parameter properties* en constructores; por eso `control.ts` asigna
   sus campos a mano.
+- tmux reemplaza por `_` el separador de campos (`\x1f`) de sus formatos `-F`
+  cuando el entorno no tiene locale UTF-8. Bajo launchd eso dejaba la discovery
+  en basura y el canvas vacío, así que el LaunchAgent exporta `LANG` y la
+  discovery descarta las líneas que no traen todos los campos, avisando en vez
+  de inventar tiles.
+- Con `TCV_WAIT_PORT=1` (lo que pone el LaunchAgent) el servidor espera a que
+  se libere el puerto en vez de morir: bajo launchd, morir sólo consigue un
+  bucle de reinicios. En primer plano hace lo contrario — avisa de que ya hay un
+  servidor y abre el navegador contra ese.
 - `client_control_mode` distingue los clientes del canvas de tus terminales, para
   no avisarte de un conflicto de tamaño consigo mismo.
