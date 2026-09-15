@@ -15,7 +15,10 @@
     "typecheck": "tsc --noEmit",
     "postinstall": "node scripts/fix-node-pty.mjs",
     "prestart": "node scripts/fix-node-pty.mjs",
-    "canvas": "npm run build && npm start"
+    "canvas": "npm run build && npm start",
+    "autostart": "node scripts/autostart.mjs",
+    "autostart:off": "node scripts/autostart.mjs --off",
+    "autostart:status": "node scripts/autostart.mjs --status"
   },
   "dependencies": {
     "@xterm/addon-web-links": "^0.11.0",
