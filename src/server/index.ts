@@ -60,6 +60,8 @@ const MIME: Record<string, string> = {
   '.css': 'text/css; charset=utf-8',
   '.map': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.webmanifest': 'application/manifest+json',
 }
 
 const tooBig = (limit: number) => new Error(`la imagen supera el límite de ${Math.round(limit / 1024 / 1024)} MB`)

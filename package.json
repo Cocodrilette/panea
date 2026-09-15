@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "node scripts/build.mjs",
+    "icons": "node scripts/icons.mjs",
     "dev": "node scripts/build.mjs --watch",
     "start": "node --experimental-strip-types src/server/index.ts",
     "typecheck": "tsc --noEmit",

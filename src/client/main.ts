@@ -625,4 +625,11 @@ window.addEventListener('beforeunload', () => {
   sendMsg({ type: 'layout', layout })
 })
 
+// El service worker es lo que hace que Chrome ofrezca "Instalar app"; si el
+// registro falla (servido desde un host que no es loopback, p.ej.) la app
+// sigue funcionando igual, sólo no se instala.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch((err) => console.warn('[tcv] service worker:', err))
+}
+
 connect()
