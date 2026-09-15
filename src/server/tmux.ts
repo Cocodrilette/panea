@@ -56,7 +56,7 @@ export async function liveSessions(): Promise<Set<string>> {
 
 /** One tile per pane: control mode delivers output per pane, so panes are the unit. */
 export async function discoverTiles(): Promise<{ tiles: TileSpec[]; warnings: string[] }> {
-  const fmt = [
+  const FIELDS = [
     '#{session_name}',
     '#{window_id}',
     '#{window_name}',
@@ -67,7 +67,8 @@ export async function discoverTiles(): Promise<{ tiles: TileSpec[]; warnings: st
     '#{pane_height}',
     '#{pane_current_command}',
     '#{pane_current_path}',
-  ].join(SEP)
+  ]
+  const fmt = FIELDS.join(SEP)
 
   let out: string
   try {
@@ -78,9 +79,18 @@ export async function discoverTiles(): Promise<{ tiles: TileSpec[]; warnings: st
 
   const tiles: TileSpec[] = []
   const seenPanes = new Set<string>()
+  let malformed = 0
 
   for (const line of out.split('\n').filter(Boolean)) {
     const f = line.split(SEP)
+    // Sin un locale UTF-8 en el entorno, tmux sustituye el separador por `_` y
+    // la línea entera llega como un solo campo. Antes eso producía un tile
+    // fantasma (`…/undefined/undefined`) y un cliente de control que moría
+    // solo; mejor descartar la línea y decirlo.
+    if (f.length !== FIELDS.length) {
+      malformed += 1
+      continue
+    }
     const [session, windowId, windowName, windowPanes, paneId, paneIndex, cols, rows, command, path] = f
 
     // Legacy view sessions, and the same pane listed once per session that shows it.
@@ -106,7 +116,14 @@ export async function discoverTiles(): Promise<{ tiles: TileSpec[]; warnings: st
   }
 
   tiles.sort((a, b) => a.id.localeCompare(b.id))
-  return { tiles, warnings: await sizeWarnings(tiles) }
+  const warnings = await sizeWarnings(tiles)
+  if (malformed) {
+    warnings.unshift(
+      `tmux devolvió ${malformed} línea(s) sin los separadores esperados, así que esos panes no se muestran. ` +
+        'Suele ser un entorno sin locale UTF-8: revisa que LANG esté definido donde corre el servidor.',
+    )
+  }
+  return { tiles, warnings }
 }
 
 /**
