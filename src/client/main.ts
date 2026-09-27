@@ -2,6 +2,7 @@ import '@xterm/xterm/css/xterm.css'
 import './styles.css'
 
 import type { ClientMessage, Layout, ServerMessage, TileBox, TileSpec } from '../shared/protocol.ts'
+import { Groups, packBySession } from './groups.ts'
 import { hasFiles, imagesFrom, quotePath, uploadImage } from './images.ts'
 import { measureCell, snapSize, type Cell } from './metrics.ts'
 import { Tile } from './tile.ts'
@@ -27,6 +28,7 @@ let DEFAULT_SIZE = snapSize(780, 460, cell)
 
 const viewport = new Viewport(root, world)
 const tiles = new Map<string, Tile>()
+const groups = new Groups(world, () => tiles.values(), { zoom: () => viewport.zoom, onMoved: () => saveLayout() })
 
 let layout: Layout = { tiles: {}, viewport: viewport.state, hidden: [] }
 let focused: Tile | null = null
@@ -309,32 +311,15 @@ function overlaps(a: TileBox, b: TileBox): boolean {
 }
 
 /**
- * Pack the tiles into rows without touching their sizes. A tile's size belongs
+ * Pack the tiles, session by session (see packBySession), without touching their sizes. A tile's size belongs
  * to its tmux pane, so laying out the canvas must never resize anything —
  * asking every tile of a shared window for a new size would just make them
  * fight over the window they live in.
  */
 function packTiles(): void {
-  const list = [...tiles.values()].sort((a, b) => a.spec.id.localeCompare(b.spec.id))
-  if (!list.length) return
-
-  const maxRowWidth = Math.max(...list.map((t) => t.box.w)) * 3 + GAP * 2
-  let x = 0
-  let y = 0
-  let rowHeight = 0
-
-  for (const tile of list) {
-    if (x > 0 && x + tile.box.w > maxRowWidth) {
-      x = 0
-      y += rowHeight + GAP
-      rowHeight = 0
-    }
-    tile.box.x = x
-    tile.box.y = y
-    tile.applyBox()
-    x += tile.box.w + GAP
-    rowHeight = Math.max(rowHeight, tile.box.h)
-  }
+  if (!tiles.size) return
+  packBySession(tiles.values(), GAP)
+  for (const tile of tiles.values()) tile.applyBox()
   saveLayout()
   fitAll()
 }
@@ -511,6 +496,7 @@ function saveLayout(): void {
 viewport.onChange = () => {
   zoomEl.textContent = `${Math.round(viewport.zoom * 100)}%`
   updateLod()
+  groups.setZoom(viewport.zoom)
   saveLayout()
 }
 
