@@ -1,6 +1,7 @@
 import '@xterm/xterm/css/xterm.css'
 import './styles.css'
 
+import { Activity } from './activity.ts'
 import type { ClientMessage, Layout, ServerMessage, TileBox, TileSpec } from '../shared/protocol.ts'
 import { hasFiles, imagesFrom, quotePath, uploadImage } from './images.ts'
 import { measureCell, snapSize, type Cell } from './metrics.ts'
@@ -32,6 +33,8 @@ let layout: Layout = { tiles: {}, viewport: viewport.state, hidden: [] }
 let focused: Tile | null = null
 let topZ = 1
 let socket: WebSocket | null = null
+
+const activity = new Activity({ jump: (t) => zoomToTile(t), toast: (m) => toast(m) })
 
 /* ------------------------------- transport ------------------------------- */
 
@@ -82,10 +85,12 @@ function handle(msg: ServerMessage): void {
 
     case 'output':
       tiles.get(msg.id)?.write(msg.data)
+      activity.output(msg.id)
       break
 
     case 'geometry':
       tiles.get(msg.id)?.applyGeometry(msg.cols, msg.rows)
+      activity.resized(msg.id)
       saveLayout()
       schedulePack()
       break
@@ -135,7 +140,10 @@ function addTile(spec: TileSpec): void {
 
   const tile = new Tile(spec, box, cell, {
     onInput: (id, data) => sendMsg({ type: 'input', id, data }),
-    onResize: (id, cols, rows) => sendMsg({ type: 'resize', id, cols, rows }),
+    onResize: (id, cols, rows) => {
+      activity.resized(id)
+      sendMsg({ type: 'resize', id, cols, rows })
+    },
     onFocus: (t) => focus(t),
     onChange: () => saveLayout(),
     onDragStart: (t) => raise(t),
@@ -151,6 +159,7 @@ function addTile(spec: TileSpec): void {
   world.appendChild(tile.el)
   tile.mount()
   tiles.set(spec.id, tile)
+  activity.track(tile)
   layout.tiles[spec.id] = tile.box
 
   const { cols, rows } = tile.size
@@ -219,11 +228,13 @@ function focus(tile: Tile): void {
   focused = tile
   raise(tile)
   tile.setFocused(true)
+  activity.seen(tile)
 }
 
 function blurAll(): void {
   focused?.setFocused(false)
   focused = null
+  activity.seen(null)
 }
 
 function raise(tile: Tile): void {

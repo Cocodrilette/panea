@@ -29,6 +29,7 @@ no duplica servidores ni pelea por los puertos.
 | esquina inferior derecha | redimensionar (ajusta cols/rows reales del pane) |
 | ⌘0 / ⌘1 / ⌘G | encajar todo / zoom 100% / reempaquetar |
 | ⌘T / ⌘R | terminal nueva / re-escanear tmux |
+| ⌘J, o `⚑` en la barra | ir a la próxima terminal que pide atención |
 | arrastrar o pegar una imagen sobre una terminal | escribir su ruta en el prompt |
 
 Botones de cada tile: `⤢` zoom a esa terminal, `⧉` sacar el pane a su propia
@@ -122,6 +123,16 @@ playwright y escribe `assets/icons/*.png`, que sí se versionan).
   renderizar el terminal vivo y muestran un snapshot de texto, refrescado cada
   1.5 s. Eso es lo que mantiene fluido el zoom-out con una docena de terminales
   escupiendo logs.
+- **Actividad y atención.** Un tile sin foco se marca con un borde de color y
+  una etiqueta en la barra (y una grande sobre el snapshot al alejar): *salida
+  nueva* mientras escribe, *en silencio* cuando dejó de escribir, *campana* si
+  sonó un BEL y *espera respuesta* si se calló sobre algo que parece una
+  pregunta — el diálogo de aprobación de Claude Code, un `[y/N]`, un
+  `Password:`. La heurística es estrecha a propósito: una falsa alarma enseña a
+  ignorarla. Todo pasa en el cliente, leyendo el buffer de xterm; ni el
+  servidor ni tmux se enteran. El repintado al abrir, al redimensionar o al
+  soltar el foco no cuenta como salida nueva. Darle el foco limpia las marcas,
+  y ⌘J (o `⚑`) salta a la más urgente.
 
 ## Estructura
 
@@ -133,6 +144,7 @@ src/server/store.ts    layout persistido y proyectos de tmuxinator
 src/server/uploads.ts  imágenes soltadas/pegadas, guardadas en disco
 src/client/viewport.ts cámara pan/zoom (una sola CSS transform)
 src/client/tile.ts     tile: xterm, drag, resize, snapshot, drop de imágenes
+src/client/activity.ts salida nueva, campana y "espera respuesta" por tile
 src/client/images.ts   subida de imágenes y la ruta que se teclea
 src/client/metrics.ts  medición del tamaño de celda
 src/client/sw.js       service worker de la PWA (shell cacheado, network-first)
