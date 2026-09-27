@@ -2,7 +2,10 @@ import '@xterm/xterm/css/xterm.css'
 import './styles.css'
 
 import type { ClientMessage, Layout, ServerMessage, TileBox, TileSpec } from '../shared/protocol.ts'
+import { fitTarget, flyTo, revealTarget } from './camera.ts'
+import { highlight, rank, type Field } from './fuzzy.ts'
 import { hasFiles, imagesFrom, quotePath, uploadImage } from './images.ts'
+import { arrowChord, nearestInDirection, type Direction } from './spatial.ts'
 import { measureCell, snapSize, type Cell } from './metrics.ts'
 import { Tile } from './tile.ts'
 import { Viewport, type Rect } from './viewport.ts'
@@ -379,8 +382,23 @@ function fitAll(): void {
 }
 
 function zoomToTile(tile: Tile): void {
-  viewport.fit(tile.box, 60, 1)
+  flyTo(viewport, fitTarget(viewport, tile.box, 60, 1))
   focus(tile)
+}
+
+/**
+ * ⌘⌥/ctrl+⌥ + arrow: hand the keyboard to the nearest tile that way — from
+ * the focused tile, or from the middle of the window when none is — and pan
+ * just enough to show it, keeping the zoom.
+ */
+function moveFocus(dir: Direction): void {
+  const c = viewport.screenToWorld(window.innerWidth / 2, window.innerHeight / 2)
+  const from = focused?.box ?? { x: c.x, y: c.y, w: 0, h: 0 }
+  const others = [...tiles.values()].filter((t) => t !== focused)
+  const next = nearestInDirection(from, others, (t) => t.box, dir)
+  if (!next) return
+  flyTo(viewport, revealTarget(viewport, next.box))
+  focus(next)
 }
 
 /* ---------------------------------- LOD ---------------------------------- */
@@ -432,6 +450,7 @@ function createPopover(hostId: string, triggerId: string, panelId: string, onOpe
 
 const sessionPopover = createPopover('session-picker', 'session-picker-btn', 'session-picker-panel', () => {
   sessionQuery = ''
+  sessionSel = 0
   sessionSearchEl.value = ''
   renderSessionList()
   sessionSearchEl.focus()
@@ -442,15 +461,34 @@ createPopover('help-menu', 'help-btn', 'help-panel')
 /* ------------------------------ session picker ---------------------------- */
 
 let sessionQuery = ''
+/** Index of the highlighted row; arrows move it, Enter picks it. */
+let sessionSel = 0
+let sessionRows: Tile[] = []
+
+/** What the picker searches; the indexes are the ones the rows highlight. */
+function jumpFields(tile: Tile): Field[] {
+  const { title, subtitle, session, command, cwd } = tile.spec
+  return [
+    { text: title, weight: 1 },
+    { text: subtitle, weight: 0.9 },
+    { text: command, weight: 0.8 },
+    { text: cwd, weight: 0.6 },
+    { text: session, weight: 0.9 },
+  ]
+}
 
 function renderSessionList(): void {
-  const q = sessionQuery.trim().toLowerCase()
-  const list = [...tiles.values()]
-    .filter((t) => !q || `${t.spec.title} ${t.spec.subtitle} ${t.spec.session}`.toLowerCase().includes(q))
-    .sort((a, b) => a.spec.title.localeCompare(b.spec.title))
+  const all = [...tiles.values()]
+  const ranked = sessionQuery.trim()
+    ? rank(all, sessionQuery, jumpFields)
+    : all
+        .sort((a, b) => a.spec.title.localeCompare(b.spec.title))
+        .map((item) => ({ item, hits: new Map<number, number[]>() }))
+  sessionRows = ranked.map((r) => r.item)
+  sessionSel = Math.min(sessionSel, Math.max(0, sessionRows.length - 1))
 
   sessionListEl.textContent = ''
-  if (!list.length) {
+  if (!ranked.length) {
     const empty = document.createElement('li')
     empty.className = 'session-empty'
     empty.textContent = 'sin resultados'
@@ -458,37 +496,66 @@ function renderSessionList(): void {
     return
   }
 
-  for (const tile of list) {
+  ranked.forEach(({ item: tile, hits }, i) => {
+    const { title, subtitle, command, cwd } = tile.spec
     const li = document.createElement('li')
-    li.tabIndex = 0
-    const title = document.createElement('span')
-    title.className = 'session-item-title'
-    title.textContent = tile.spec.title
+    li.classList.toggle('selected', i === sessionSel)
+    const head = document.createElement('span')
+    head.className = 'session-item-title'
+    head.append(highlight(title, hits.get(0)))
     const sub = document.createElement('span')
     sub.className = 'session-item-sub'
-    sub.textContent = tile.spec.subtitle
-    li.append(title, sub)
-    const select = () => {
-      zoomToTile(tile)
-      sessionPopover.close()
+    sub.append(highlight(subtitle, hits.get(1)))
+    if (command) sub.append(' — ', highlight(command, hits.get(2)))
+    li.append(head, sub)
+    // The session already shows in the subtitle; the cwd only earns a line
+    // when it is what the query hit.
+    if (hits.has(3)) {
+      const dir = document.createElement('span')
+      dir.className = 'session-item-sub'
+      dir.append(highlight(cwd, hits.get(3)))
+      li.append(dir)
     }
-    li.addEventListener('click', select)
-    li.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter') select()
-    })
+    // Keep the keyboard in the search box until the pick hands it over.
+    li.addEventListener('pointerdown', (ev) => ev.preventDefault())
+    li.addEventListener('click', () => pickSession(i))
     sessionListEl.appendChild(li)
-  }
+  })
+}
+
+function pickSession(i: number): void {
+  const tile = sessionRows[i]
+  if (!tile) return
+  sessionPopover.close()
+  zoomToTile(tile)
+}
+
+function moveSessionSel(delta: number): void {
+  if (!sessionRows.length) return
+  sessionSel = (sessionSel + delta + sessionRows.length) % sessionRows.length
+  const items = sessionListEl.children
+  for (let i = 0; i < items.length; i++) items[i].classList.toggle('selected', i === sessionSel)
+  items[sessionSel]?.scrollIntoView({ block: 'nearest' })
 }
 
 sessionSearchEl.addEventListener('input', () => {
   sessionQuery = sessionSearchEl.value
+  sessionSel = 0
   renderSessionList()
 })
 
 sessionSearchEl.addEventListener('keydown', (ev) => {
-  if (ev.key === 'Enter') {
-    const first = sessionListEl.querySelector('li:not(.session-empty)') as HTMLLIElement | null
-    first?.click()
+  if (ev.key === 'ArrowDown' || (ev.ctrlKey && ev.key === 'n')) {
+    ev.preventDefault()
+    moveSessionSel(1)
+  } else if (ev.key === 'ArrowUp' || (ev.ctrlKey && ev.key === 'p')) {
+    ev.preventDefault()
+    moveSessionSel(-1)
+  } else if (ev.key === 'Enter') {
+    // Without this, the keypress that follows lands on the terminal that was
+    // just focused and runs whatever sits at its prompt.
+    ev.preventDefault()
+    pickSession(sessionSel)
   }
 })
 
@@ -589,7 +656,11 @@ document.getElementById('toolbar')?.addEventListener('click', (ev) => {
 
 window.addEventListener('keydown', (ev) => {
   const mod = ev.metaKey || ev.ctrlKey
-  if (mod && ev.key === '0') {
+  const dir = arrowChord(ev)
+  if (dir) {
+    ev.preventDefault()
+    moveFocus(dir)
+  } else if (mod && ev.key === '0') {
     ev.preventDefault()
     fitAll()
   } else if (mod && ev.key === '1') {

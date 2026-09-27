@@ -25,6 +25,8 @@ no duplica servidores ni pelea por los puertos.
 | ⌘/ctrl + scroll, o pinch en trackpad | zoom (centrado en el cursor) |
 | click en una terminal | darle el foco y el teclado |
 | ⌘esc, o click en el fondo | soltar el foco |
+| ⌘K, escribir, ↑↓ y enter | saltar a un pane: búsqueda difusa por título, window, sesión, comando y cwd; vuela hasta el tile y le da el teclado |
+| ⌘⌥ + flechas, o ctrl+⌥ + flechas | pasar el foco al tile más cercano en esa dirección (desde el centro de la ventana si no hay foco) |
 | arrastrar la barra de título | mover el tile |
 | esquina inferior derecha | redimensionar (ajusta cols/rows reales del pane) |
 | ⌘0 / ⌘1 / ⌘G | encajar todo / zoom 100% / reempaquetar |
@@ -70,6 +72,10 @@ El agente congela la ruta del node actual: si cambias de versión con nvm, vuelv
 a correr `npm run autostart`. Y como deja el puerto tomado, `npm run canvas` ya
 no falla: ve que hay un servidor y abre el navegador contra ese. Al revés
 también — el agente espera a que sueltes el puerto y lo retoma en segundos.
+
+En una pestaña normal Chrome se reserva ⌘⌥←/→ para cambiar de pestaña, así que
+ahí la navegación entre tiles va por ctrl+⌥ + flechas, que funciona en cualquier
+ventana.
 
 Dos cosas que la ventana PWA no te da: Chrome se queda con ⌘W (cierra) y con su
 menú de recarga, así que si algún atajo no llega a la app, el menú `⋯` tiene los
@@ -132,6 +138,9 @@ src/server/tmux.ts     descubrimiento, dimensionado y ciclo de vida
 src/server/store.ts    layout persistido y proyectos de tmuxinator
 src/server/uploads.ts  imágenes soltadas/pegadas, guardadas en disco
 src/client/viewport.ts cámara pan/zoom (una sola CSS transform)
+src/client/camera.ts   vuelos animados de la cámara (encajar, revelar un tile)
+src/client/fuzzy.ts    búsqueda difusa y resaltado del selector ⌘K
+src/client/spatial.ts  el tile vecino en una dirección (⌘⌥ + flechas)
 src/client/tile.ts     tile: xterm, drag, resize, snapshot, drop de imágenes
 src/client/images.ts   subida de imágenes y la ruta que se teclea
 src/client/metrics.ts  medición del tamaño de celda
