@@ -502,6 +502,8 @@ body {
 
 .group-head:hover .group-label {
   color: hsl(var(--group-hue) 70% 85%);
+}
+
 /* ---------- activity ---------- */
 
 /* Set by activity.ts on tiles you are not looking at. The ring is drawn in
