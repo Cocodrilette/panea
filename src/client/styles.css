@@ -329,6 +329,16 @@ body {
   outline: none;
 }
 
+#session-list li.selected {
+  background: rgb(110 168 254 / 16%);
+}
+
+#session-list mark {
+  background: none;
+  color: var(--accent);
+  font-weight: 700;
+}
+
 #session-list li.session-empty {
   color: var(--muted);
   cursor: default;
