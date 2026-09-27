@@ -29,13 +29,21 @@ no duplica servidores ni pelea por los puertos.
 | esquina inferior derecha | redimensionar (ajusta cols/rows reales del pane) |
 | ⌘0 / ⌘1 / ⌘G | encajar todo / zoom 100% / reempaquetar |
 | ⌘T / ⌘R | terminal nueva / re-escanear tmux |
+| ⌥⇧1…9 / ⌥1…9 | guardar la cámara en ese slot / volver a ella (animado) |
 | arrastrar o pegar una imagen sobre una terminal | escribir su ruta en el prompt |
 
 Botones de cada tile: `⤢` zoom a esa terminal, `⧉` sacar el pane a su propia
 window para desacoplar su tamaño, `✕` quitar del canvas (el proceso sigue vivo),
 `⌫` matar el pane y sus procesos.
 
-El layout (posición y cámara) se guarda en
+Las **vistas guardadas** son marcadores de cámara: el menú `⋯` las lista para
+ir a una, renombrarla o borrarla, y *+ Guardar vista* pide un nombre y toma el
+primer slot libre. El atajo no es ⌘⇧dígito porque macOS se queda con ⌘⇧3/4/5
+(capturas) antes de que llegue al navegador, y ⌘/ctrl+dígito ya son del canvas
+y de Chrome. ⌥dígito funciona aunque una terminal tenga el foco; el precio es
+que las terminales dejan de recibir Meta-1…9.
+
+El layout (posición, cámara y vistas guardadas) se guarda en
 `~/.config/terminal-canvas/layout.json` y se restaura al abrir.
 
 ### Imágenes
@@ -134,6 +142,7 @@ src/server/uploads.ts  imágenes soltadas/pegadas, guardadas en disco
 src/client/viewport.ts cámara pan/zoom (una sola CSS transform)
 src/client/tile.ts     tile: xterm, drag, resize, snapshot, drop de imágenes
 src/client/images.ts   subida de imágenes y la ruta que se teclea
+src/client/views.ts    vistas guardadas: marcadores de cámara, atajos y menú
 src/client/metrics.ts  medición del tamaño de celda
 src/client/sw.js       service worker de la PWA (shell cacheado, network-first)
 src/client/manifest.webmanifest

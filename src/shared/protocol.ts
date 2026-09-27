@@ -46,11 +46,19 @@ export interface Viewport {
   zoom: number
 }
 
+/** A camera bookmark in slot 1–9, recalled with ⌥digit (see client/views.ts). */
+export interface SavedView extends Viewport {
+  slot: number
+  name?: string
+}
+
 export interface Layout {
   tiles: Record<string, TileBox>
   viewport: Viewport
   /** Tiles the user explicitly closed; kept so they are not re-added. */
   hidden: string[]
+  /** Optional so a layout.json from before saved views still loads. */
+  views?: SavedView[]
 }
 
 export type ClientMessage =

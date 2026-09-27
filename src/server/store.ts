@@ -20,6 +20,7 @@ export function loadLayout(): Layout {
       tiles: raw.tiles ?? {},
       viewport: raw.viewport ?? EMPTY.viewport,
       hidden: raw.hidden ?? [],
+      views: Array.isArray(raw.views) ? raw.views : [],
     }
   } catch {
     return structuredClone(EMPTY)
