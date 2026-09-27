@@ -11,7 +11,7 @@ import { arrowChord, nearestInDirection, type Direction } from './spatial.ts'
 import { measureCell, snapSize, type Cell } from './metrics.ts'
 import { Tile } from './tile.ts'
 import { currentTheme, onThemeChange, setThemePref, themePref, type ThemeName, type ThemePref } from './theme.ts'
-import { Viewport, type Rect } from './viewport.ts'
+import { MAX_ZOOM, Viewport, type Rect } from './viewport.ts'
 import { Views } from './views.ts'
 
 const LOD_THRESHOLD = 0.55
@@ -110,6 +110,10 @@ function handle(msg: ServerMessage): void {
       schedulePack()
       break
 
+    case 'spawned':
+      if (reserved && !reserved.session) reserved.session = msg.session
+      break
+
     case 'exit':
       tiles.get(msg.id)?.markDead()
       break
@@ -125,8 +129,15 @@ function handle(msg: ServerMessage): void {
 function syncTiles(specs: TileSpec[]): void {
   const seen = new Set<string>()
 
+  // A tile list computed before a kill reached tmux still lists the pane. Once
+  // one arrives without it, the kill has landed and the id can be forgotten.
+  const listed = new Set(specs.map((s) => s.id))
+  for (const [id, at] of killing) {
+    if (!listed.has(id) || Date.now() - at > KILL_GRACE_MS) killing.delete(id)
+  }
+
   for (const spec of specs) {
-    if (layout.hidden.includes(spec.id)) continue
+    if (layout.hidden.includes(spec.id) || killing.has(spec.id)) continue
     seen.add(spec.id)
 
     const existing = tiles.get(spec.id)
@@ -149,7 +160,8 @@ function syncTiles(specs: TileSpec[]): void {
 }
 
 function addTile(spec: TileSpec): void {
-  const box = layout.tiles[spec.id] ?? nextFreeBox()
+  const claimed = claimReserved(spec)
+  const box = layout.tiles[spec.id] ?? claimed ?? nextFreeBox()
   box.z = box.z || ++topZ
   topZ = Math.max(topZ, box.z)
 
@@ -167,7 +179,8 @@ function addTile(spec: TileSpec): void {
     onClose: (t) => closeTile(t),
     onKill: (t) => killTile(t),
     onDecouple: (t) => decouplePane(t),
-    onZoomTo: (t) => zoomToTile(t),
+    onZoomTo: (t, fill) => zoomToTile(t, fill),
+    onDuplicate: (t) => duplicateTile(t),
     onImages: (t, files) => void pasteImages(t, files),
     onMeasured: (real) => adoptCell(real),
     unscaled: (fn) => viewport.unscaled(fn),
@@ -182,6 +195,8 @@ function addTile(spec: TileSpec): void {
   const { cols, rows } = tile.size
   sendMsg({ type: 'open', id: spec.id, cols, rows })
   saveLayout()
+  // A duplicate is something the user just asked for, so hand it the keyboard.
+  if (claimed) focus(tile)
 }
 
 /**
@@ -212,12 +227,47 @@ function closeTile(tile: Tile): void {
   saveLayout()
 }
 
+/**
+ * A second terminal in the same directory, parked beside the one it came from.
+ * tmux names the session, not us, so the spot is held against the session name
+ * the server reports back — otherwise a tile discovered in the same push could
+ * take it.
+ */
+let reserved: { session: string | null; box: TileBox } | null = null
+
+function duplicateTile(tile: Tile): void {
+  reserved = { session: null, box: boxNextTo(tile.box) }
+  sendMsg({ type: 'spawn', cwd: tile.spec.cwd || undefined, name: windowNameOf(tile.spec) })
+}
+
+/** The tmux window name behind a tile title ("web.1" is pane 1 of window "web"). */
+function windowNameOf(spec: TileSpec): string {
+  return spec.siblings > 1 ? spec.title.replace(/\.\d+$/, '') : spec.title
+}
+
+function claimReserved(spec: TileSpec): TileBox | null {
+  if (!reserved?.session || reserved.session !== spec.session) return null
+  const { box } = reserved
+  reserved = null
+  return box
+}
+
+/**
+ * Panes killed from here, until a tile list arrives that no longer shows them.
+ * Without this, a list already in flight puts the tile straight back on the
+ * canvas, where opening it fails — the pane really is gone by then.
+ */
+const killing = new Map<string, number>()
+/** Stop waiting if tmux never drops it: a live tile beats a lost one. */
+const KILL_GRACE_MS = 10_000
+
 function killTile(tile: Tile): void {
   const ok = confirm(
     `¿Matar la window de tmux "${tile.spec.title}"?\n\nEsto termina sus procesos (${tile.spec.command || 'shell'}).`,
   )
   if (!ok) return
   sendMsg({ type: 'kill', id: tile.spec.id })
+  killing.set(tile.spec.id, Date.now())
   tile.dispose()
   tiles.delete(tile.spec.id)
   delete layout.tiles[tile.spec.id]
@@ -332,6 +382,38 @@ function nextFreeBox(): TileBox {
   return { x: 0, y: 0, w: DEFAULT_SIZE.w, h: DEFAULT_SIZE.h, z: 0 }
 }
 
+/**
+ * A free spot touching `origin`, preferred to its right, and the same size —
+ * so a duplicate reads as the next one along instead of a tile parked wherever
+ * the canvas happened to have room.
+ */
+function boxNextTo(origin: TileBox): TileBox {
+  const taken = [...tiles.values()].map((t) => t.box)
+  const { w, h } = origin
+  const free = (x: number, y: number): TileBox | null => {
+    const box: TileBox = { x: Math.round(x), y: Math.round(y), w, h, z: 0 }
+    return taken.some((b) => overlaps(b, box)) ? null : box
+  }
+
+  return (
+    free(origin.x + origin.w + GAP, origin.y) ??
+    free(origin.x, origin.y + origin.h + GAP) ??
+    free(origin.x - w - GAP, origin.y) ??
+    free(origin.x, origin.y - h - GAP) ??
+    // Boxed in on all four sides: keep walking right along the same row.
+    walkRight(origin, free) ??
+    nextFreeBox()
+  )
+}
+
+function walkRight(origin: TileBox, free: (x: number, y: number) => TileBox | null): TileBox | null {
+  for (let i = 2; i < 40; i++) {
+    const box = free(origin.x + (origin.w + GAP) * i, origin.y)
+    if (box) return box
+  }
+  return null
+}
+
 function overlaps(a: TileBox, b: TileBox): boolean {
   return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
 }
@@ -389,8 +471,13 @@ function fitAll(): void {
   if (b) viewport.fit(b)
 }
 
-function zoomToTile(tile: Tile): void {
-  flyTo(viewport, fitTarget(viewport, tile.box, 60, 1))
+/**
+ * Frame a single tile. `fill` (double-click on its title) lets the zoom run
+ * past 100% so a small terminal still takes over the screen; the plain zoom
+ * button stops at 100%, where the text is crispest.
+ */
+function zoomToTile(tile: Tile, fill = false): void {
+  flyTo(viewport, fitTarget(viewport, tile.box, fill ? 24 : 60, fill ? MAX_ZOOM : 1))
   focus(tile)
 }
 

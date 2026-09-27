@@ -28,7 +28,10 @@ export interface TileHandlers {
   onClose(tile: Tile): void
   onKill(tile: Tile): void
   onDecouple(tile: Tile): void
-  onZoomTo(tile: Tile): void
+  /** `fill` asks for the tile to take over the screen, not just be framed. */
+  onZoomTo(tile: Tile, fill?: boolean): void
+  /** Another terminal in this pane’s directory, placed next to it. */
+  onDuplicate(tile: Tile): void
   /** Images dropped on, or pasted into, this tile. */
   onImages(tile: Tile, files: File[]): void
   /** Reports the real cell size of the first terminal that mounts. */
@@ -82,6 +85,7 @@ export class Tile {
 
     head.append(this.titleEl, this.subEl, this.badgeEl)
     head.append(
+      this.button('⊕', 'Duplicar: otra terminal en esta misma ruta, al lado', () => handlers.onDuplicate(this)),
       this.button('⤢', 'Zoom a esta terminal', () => handlers.onZoomTo(this)),
       this.button('⧉', 'Sacar este pane a su propia window para desacoplar su tamaño', () => handlers.onDecouple(this), 'decouple'),
       this.button('✕', 'Quitar del canvas (los procesos siguen vivos)', () => handlers.onClose(this)),
@@ -125,6 +129,7 @@ export class Tile {
     this.update(spec)
     this.applyBox()
     this.wireDrag(head)
+    this.wireHeadZoom(head)
     this.wireResize(resize)
     this.wireImages()
 
@@ -341,6 +346,16 @@ export class Tile {
       head.addEventListener('pointermove', move)
       head.addEventListener('pointerup', up)
       head.addEventListener('pointercancel', up)
+    })
+  }
+
+  /** Double-clicking the title blows this tile up to fill the screen. */
+  private wireHeadZoom(head: HTMLElement): void {
+    head.addEventListener('dblclick', (ev) => {
+      if ((ev.target as Element | null)?.closest('button')) return
+      // Otherwise the second click selects the title text.
+      ev.preventDefault()
+      this.handlers.onZoomTo(this, true)
     })
   }
 

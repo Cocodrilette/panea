@@ -28,6 +28,7 @@ import {
   releaseWindowSize,
   serverRunning,
   sizePane,
+  nextShellName,
   spawnShell,
 } from './tmux.ts'
 import { listProjects, loadLayout, saveLayout, startProject } from './store.ts'
@@ -225,7 +226,9 @@ function dropRoute(id: string): void {
 async function openTile(ws: WebSocket, id: string, cols: number, rows: number): Promise<void> {
   const spec = await specFor(id)
   if (!spec) {
-    send(ws, { type: 'error', message: `tile desconocido: ${id}` })
+    // Nothing worth bothering the user with: the browser is asking about a
+    // pane that died between the tile list it read and this request.
+    console.log(`[tcv] open de un pane que ya no existe: ${id}`)
     return
   }
 
@@ -350,10 +353,15 @@ wss.on('connection', async (ws) => {
           break
         }
 
-        case 'spawn':
-          await spawnShell(msg.cwd ?? process.env.HOME ?? '.', msg.command, 100, 30, msg.name)
+        case 'spawn': {
+          // Announced before the session exists, because creating it already
+          // pushes a new tile list — see nextShellName.
+          const session = nextShellName()
+          send(ws, { type: 'spawned', session })
+          await spawnShell(session, msg.cwd ?? process.env.HOME ?? '.', msg.command, 100, 30, msg.name)
           await pushTiles()
           break
+        }
 
         case 'start-project':
           await startProject(msg.name)

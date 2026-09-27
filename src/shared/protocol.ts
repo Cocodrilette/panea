@@ -100,4 +100,10 @@ export type ServerMessage =
    */
   | { type: 'geometry'; id: string; cols: number; rows: number }
   | { type: 'exit'; id: string }
+  /**
+   * Names the session a `spawn` just created, so the client can tell its own
+   * new terminal apart from anything else tmux reports in the same push — a
+   * duplicate has a spot reserved for it next to its origin.
+   */
+  | { type: 'spawned'; session: string }
   | { type: 'error'; message: string }

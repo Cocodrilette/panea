@@ -28,6 +28,7 @@ no duplica servidores ni pelea por los puertos.
 | ⌘K, escribir, ↑↓ y enter | saltar a un pane: búsqueda difusa por título, window, sesión, comando y cwd; vuela hasta el tile y le da el teclado |
 | ⌘⌥ + flechas, o ctrl+⌥ + flechas | pasar el foco al tile más cercano en esa dirección (desde el centro de la ventana si no hay foco) |
 | arrastrar la barra de título | mover el tile |
+| doble click en la barra de título | zoom centrado: ese tile ocupa casi toda la pantalla |
 | arrastrar el nombre de un grupo (su marco) | mover todos sus tiles juntos |
 | arrastrar un tile dentro de otro marco / fuera del suyo | pasarlo a ese grupo / sacarlo del grupo |
 | click en el chip de grupo de un tile | moverlo a otro grupo, a uno nuevo o a ninguno |
@@ -40,9 +41,10 @@ no duplica servidores ni pelea por los puertos.
 | ⌘J, o `⚑` en la barra | ir a la próxima terminal que pide atención |
 | arrastrar o pegar una imagen sobre una terminal | escribir su ruta en el prompt |
 
-Botones de cada tile: `⤢` zoom a esa terminal, `⧉` sacar el pane a su propia
-window para desacoplar su tamaño, `✕` quitar del canvas (el proceso sigue vivo),
-`⌫` matar el pane y sus procesos.
+Botones de cada tile: `⊕` duplicar (otra terminal en la misma ruta, al lado),
+`⤢` zoom a esa terminal, `⧉` sacar el pane a su propia window para desacoplar su
+tamaño, `✕` quitar del canvas (el proceso sigue vivo), `⌫` matar el pane y sus
+procesos.
 
 Las **vistas guardadas** son marcadores de cámara: el menú `⋯` las lista para
 ir a una, renombrarla o borrarla, y *+ Guardar vista* pide un nombre y toma el

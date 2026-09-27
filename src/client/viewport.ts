@@ -1,7 +1,7 @@
 import type { Viewport as ViewportState } from '../shared/protocol.ts'
 
 const MIN_ZOOM = 0.12
-const MAX_ZOOM = 2.5
+export const MAX_ZOOM = 2.5
 const GRID = 32
 /** How long a terminal keeps a scroll gesture after claiming it. */
 const LATCH_MS = 250

@@ -315,18 +315,28 @@ export async function killPane(spec: TileSpec): Promise<void> {
 }
 
 /**
+ * The name the next spawned shell will get. Split out from `spawnShell` so a
+ * caller can announce the session before it exists: creating it makes tmux
+ * report a layout change, and that notification can reach the browser before
+ * `spawnShell` has returned.
+ */
+export function nextShellName(): string {
+  return `${SHELL_PREFIX}${Date.now().toString(36)}`
+}
+
+/**
  * A brand new single-pane session the canvas owns. It is an ordinary tmux
  * session, so the next discovery pass turns it into a tile like any other —
  * and it survives a canvas restart.
  */
 export async function spawnShell(
+  name: string,
   cwd: string,
   command: string | undefined,
   cols: number,
   rows: number,
   displayName?: string,
 ): Promise<string> {
-  const name = `${SHELL_PREFIX}${Date.now().toString(36)}`
   const dir = cwd || process.env.HOME || '.'
   const label = displayName?.trim().slice(0, 20)
   await tmux([
