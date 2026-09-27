@@ -40,6 +40,8 @@ const groups = new Groups(root, world, () => tiles.values(), {
   toWorld: (x, y) => viewport.screenToWorld(x, y),
   layout: () => layout,
   save: () => saveLayout(),
+  snapFrame: (rect, others, free) => snapFrame(rect, others, free),
+  snapEnd: () => guides.clear(),
 })
 const guides = new Guides(world)
 
@@ -207,24 +209,35 @@ function addTile(spec: TileSpec): void {
 /* ------------------------------ smart guides ------------------------------ */
 
 /**
- * The tiles a moving one can snap to: only those on screen, so something far
- * off in the canvas never yanks a tile toward an alignment you cannot see.
+ * Only what is on screen can be snapped to, so something far off in the
+ * canvas never yanks a tile toward an alignment you cannot see.
  */
-function snapTargets(except: Tile): Rect[] {
+function onScreen(rects: Iterable<Rect>): Rect[] {
   const tl = viewport.screenToWorld(0, 0)
   const br = viewport.screenToWorld(window.innerWidth, window.innerHeight)
   const view = { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y }
-  const out: Rect[] = []
-  for (const t of tiles.values()) if (t !== except && overlaps(t.box, view)) out.push(t.box)
-  return out
+  return [...rects].filter((r) => overlaps(r, view))
+}
+
+function snapTargets(except: Tile): Rect[] {
+  return onScreen([...tiles.values()].filter((t) => t !== except).map((t) => t.box))
 }
 
 function snapMove(tile: Tile, x: number, y: number, free: boolean): { x: number; y: number } {
+  return snapRect({ ...tile.box, x, y }, snapTargets(tile), free)
+}
+
+/** A group frame moves like a tile, snapping among the other frames. */
+function snapFrame(rect: Rect, others: Rect[], free: boolean): { x: number; y: number } {
+  return snapRect(rect, onScreen(others), free)
+}
+
+function snapRect(rect: Rect, others: Rect[], free: boolean): { x: number; y: number } {
   if (free) {
     guides.clear()
-    return { x, y }
+    return { x: rect.x, y: rect.y }
   }
-  const snap = snapTileMove({ ...tile.box, x, y }, snapTargets(tile), SNAP_PX / viewport.zoom)
+  const snap = snapTileMove(rect, others, SNAP_PX / viewport.zoom)
   guides.show(snap.marks, viewport.zoom)
   return snap
 }

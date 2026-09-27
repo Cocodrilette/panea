@@ -29,7 +29,7 @@ no duplica servidores ni pelea por los puertos.
 | ⌘⌥ + flechas, o ctrl+⌥ + flechas | pasar el foco al tile más cercano en esa dirección (desde el centro de la ventana si no hay foco) |
 | arrastrar la barra de título | mover el tile (con guías: se imanta a bordes, centros y espaciado de los tiles visibles) |
 | doble click en la barra de título | zoom centrado: ese tile ocupa casi toda la pantalla |
-| arrastrar el nombre de un grupo (su marco) | mover todos sus tiles juntos |
+| arrastrar el nombre de un grupo (su marco) | mover todos sus tiles juntos (con guías: el marco se imanta a los otros marcos) |
 | arrastrar un tile dentro de otro marco / fuera del suyo | pasarlo a ese grupo / sacarlo del grupo |
 | click en el chip de grupo de un tile | moverlo a otro grupo, a uno nuevo o a ninguno |
 | shift + click en títulos, o shift + arrastrar el fondo | seleccionar tiles para agruparlos juntos |

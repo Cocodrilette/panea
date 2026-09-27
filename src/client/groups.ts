@@ -45,6 +45,13 @@ export interface GroupHost {
   layout(): Layout
   /** Membership, names or tile positions changed; persist them. */
   save(): void
+  /**
+   * Smart guides for a frame being dragged: where `rect` should land among
+   * `others`. `free` (⌥ held) skips snapping for that move.
+   */
+  snapFrame(rect: Rect, others: Rect[], free: boolean): { x: number; y: number }
+  /** The frame drag ended: take the guides down. */
+  snapEnd(): void
 }
 
 interface Frame {
@@ -338,13 +345,20 @@ export class Groups {
       head.classList.add('dragging')
 
       const members = this.frames.get(gid)?.members ?? []
+      if (!members.length) return
       const origin = members.map((t) => ({ tile: t, x: t.box.x, y: t.box.y }))
       const start = { x: ev.clientX, y: ev.clientY }
       const scale = this.host.zoom()
+      // The frame snaps as a whole, to the other frames and to ungrouped
+      // tiles, which are the only things standing on their own next to it.
+      const from = grow(boundsOf(members.map((t) => t.box)), PAD)
+      const others = this.snapTargets(gid)
 
       const move = (e: PointerEvent) => {
-        const dx = (e.clientX - start.x) / scale
-        const dy = (e.clientY - start.y) / scale
+        const raw = { ...from, x: from.x + (e.clientX - start.x) / scale, y: from.y + (e.clientY - start.y) / scale }
+        const at = this.host.snapFrame(raw, others, e.altKey)
+        const dx = at.x - from.x
+        const dy = at.y - from.y
         for (const o of origin) {
           o.tile.box.x = Math.round(o.x + dx)
           o.tile.box.y = Math.round(o.y + dy)
@@ -352,6 +366,7 @@ export class Groups {
         }
       }
       const up = () => {
+        this.host.snapEnd()
         head.classList.remove('dragging')
         head.removeEventListener('pointermove', move)
         head.removeEventListener('pointerup', up)
@@ -405,6 +420,16 @@ export class Groups {
     if (!d || d.tile !== tile || !d.intent) return
     if (d.intent.kind === 'join') this.assign([tile], d.intent.gid)
     else this.assign([tile], '')
+  }
+
+  /** Every frame but `gid`'s, plus the tiles that belong to no group. */
+  private snapTargets(gid: string): Rect[] {
+    const out: Rect[] = []
+    for (const [other, frame] of this.frames) {
+      if (other !== gid && frame.members.length) out.push(grow(boundsOf(frame.members.map((t) => t.box)), PAD))
+    }
+    for (const tile of this.tiles()) if (!this.groupOf(tile)) out.push(tile.box)
+    return out
   }
 
   private startTileDrag(tile: Tile): DragState {
