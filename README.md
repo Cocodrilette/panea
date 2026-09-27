@@ -26,8 +26,9 @@ no duplica servidores ni pelea por los puertos.
 | click en una terminal | darle el foco y el teclado |
 | ⌘esc, o click en el fondo | soltar el foco |
 | arrastrar la barra de título | mover el tile |
+| arrastrar el nombre de una sesión (su marco) | mover todos sus tiles juntos |
 | esquina inferior derecha | redimensionar (ajusta cols/rows reales del pane) |
-| ⌘0 / ⌘1 / ⌘G | encajar todo / zoom 100% / reempaquetar |
+| ⌘0 / ⌘1 / ⌘G | encajar todo / zoom 100% / reempaquetar por sesión |
 | ⌘T / ⌘R | terminal nueva / re-escanear tmux |
 | ⌥⇧1…9 / ⌥1…9 | guardar la cámara en ese slot / volver a ella (animado) |
 | arrastrar o pegar una imagen sobre una terminal | escribir su ruta en el prompt |
@@ -126,6 +127,16 @@ playwright y escribe `assets/icons/*.png`, que sí se versionan).
 - **Zoom nítido.** Se usa el renderer DOM de xterm, no WebGL: el texto es texto
   real y el navegador lo re-rasteriza al escalar, así que se ve nítido en
   cualquier nivel de zoom (y no gasta un contexto WebGL por tile).
+- **Un marco por sesión.** Detrás de los tiles de cada sesión de tmux hay un
+  marco con su nombre y un tinte propio (derivado del nombre, así que no cambia
+  al recargar). El marco no tiene posición propia: es siempre la caja de sus
+  tiles más un margen, así que no se persiste nada nuevo — arrastrarlo mueve
+  los tiles y se guardan los tiles. Se entera de los cambios observando el
+  `style` de cada tile (todo movimiento termina ahí) en vez de que cada
+  llamador tenga que avisarle. Al alejar, la etiqueta crece en coordenadas del
+  mundo para mantener su tamaño en pantalla, y por debajo del umbral de detalle
+  sube por encima de los tiles: es justo cuando más se navega por sesión. ⌘G
+  empaqueta cada sesión por separado y pone las sesiones una al lado de la otra.
 - **Nivel de detalle.** Por debajo del 55% de zoom los tiles sin foco dejan de
   renderizar el terminal vivo y muestran un snapshot de texto, refrescado cada
   1.5 s. Eso es lo que mantiene fluido el zoom-out con una docena de terminales
@@ -141,6 +152,7 @@ src/server/store.ts    layout persistido y proyectos de tmuxinator
 src/server/uploads.ts  imágenes soltadas/pegadas, guardadas en disco
 src/client/viewport.ts cámara pan/zoom (una sola CSS transform)
 src/client/tile.ts     tile: xterm, drag, resize, snapshot, drop de imágenes
+src/client/groups.ts   marcos por sesión y el empaquetado agrupado de ⌘G
 src/client/images.ts   subida de imágenes y la ruta que se teclea
 src/client/views.ts    vistas guardadas: marcadores de cámara, atajos y menú
 src/client/metrics.ts  medición del tamaño de celda

@@ -433,3 +433,63 @@ body {
     transform: translateY(-4px);
   }
 }
+
+/* ---------- session frames (groups.ts) ---------- */
+
+/* Behind every tile (z auto, first in the world, vs the tiles' ≥1) and
+   transparent to the pointer, except for its header: the background under a
+   frame still pans. No z-index of its own on purpose — that would make it a
+   stacking context and trap the header below the tiles when zoomed out. */
+.group-frame {
+  position: absolute;
+  border: calc(1.5px * var(--group-scale, 1)) solid hsl(var(--group-hue) 45% 55% / 35%);
+  border-radius: calc(16px * var(--group-scale, 1));
+  background: hsl(var(--group-hue) 40% 50% / 6%);
+  pointer-events: none;
+}
+
+/* 34px tall at 100%, like HEAD in groups.ts. Scaled from its bottom edge, so
+   zoomed out it grows upward, away from the tiles, and keeps its screen size. */
+.group-head {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  height: 34px;
+  padding: 8px 14px 0;
+  white-space: nowrap;
+  transform: scale(var(--group-scale, 1));
+  transform-origin: left bottom;
+  pointer-events: auto;
+  cursor: grab;
+  user-select: none;
+}
+
+/* Zoomed out (FAR_ZOOM in groups.ts) the grown label is what you navigate by,
+   and it no longer fits in the gap above its tiles: put it over them. */
+#world[data-groups-far] .group-head {
+  z-index: 2147483000;
+}
+
+.group-head.dragging {
+  cursor: grabbing;
+}
+
+.group-label {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: hsl(var(--group-hue) 60% 75%);
+  text-shadow: 0 1px 6px rgb(0 0 0 / 60%);
+}
+
+.group-count {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.group-head:hover .group-label {
+  color: hsl(var(--group-hue) 70% 85%);
+}
