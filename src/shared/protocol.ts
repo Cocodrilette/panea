@@ -59,6 +59,21 @@ export interface Layout {
   hidden: string[]
   /** Optional so a layout.json from before saved views still loads. */
   views?: SavedView[]
+  /**
+   * Group names and colors, by group id: `s:<session>` for a session's own
+   * group, `g:<id>` for one the user made (see client/groups.ts).
+   */
+  groups?: Record<string, GroupDef>
+  /**
+   * Tiles moved out of their session's group: tile id → group id, or '' for
+   * no group. A tile missing here is in its session's group.
+   */
+  groupOf?: Record<string, string>
+}
+
+export interface GroupDef {
+  name?: string
+  hue?: number
 }
 
 export type ClientMessage =

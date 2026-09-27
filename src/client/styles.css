@@ -595,3 +595,219 @@ body {
   border-color: #ff7a45;
   font-weight: 600;
 }
+
+/* ---------- group editor (groups.ts) ---------- */
+
+.group-more {
+  align-self: center;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.group-head:hover .group-more,
+.group-more:focus-visible {
+  opacity: 1;
+}
+
+.group-more:hover {
+  background: rgb(255 255 255 / 8%);
+  color: var(--text);
+}
+
+.group-rename {
+  font: inherit;
+  color: inherit;
+  width: 16ch;
+  background: var(--tile);
+  border: 1px solid hsl(var(--group-hue) 60% 60%);
+  border-radius: 5px;
+  padding: 0 6px;
+  outline: none;
+}
+
+/* A dragged tile would join this group. */
+.group-frame.drop-target {
+  border-color: hsl(var(--group-hue) 70% 65%);
+  border-style: solid;
+  background: hsl(var(--group-hue) 50% 50% / 16%);
+}
+
+/* A dragged tile would leave this group. */
+.group-frame.drop-leaving {
+  border-style: dashed;
+  opacity: 0.6;
+}
+
+.group-drop-hint {
+  position: fixed;
+  z-index: 60;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--tile-head);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 11px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* The group chip in each tile's title bar. */
+.tile-head .tile-group {
+  --group-hue: 220;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: hsl(var(--group-hue) 60% 78%);
+  background: hsl(var(--group-hue) 45% 50% / 14%);
+  border: 1px solid hsl(var(--group-hue) 45% 55% / 35%);
+}
+
+.tile-head .tile-group:hover {
+  background: hsl(var(--group-hue) 45% 50% / 26%);
+}
+
+.tile-head .tile-group.none {
+  color: var(--muted);
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--border);
+}
+
+.tile.group-selected {
+  outline: 2px dashed var(--accent);
+  outline-offset: 4px;
+}
+
+.group-marquee {
+  position: fixed;
+  z-index: 55;
+  border: 1px solid var(--accent);
+  background: rgb(110 168 254 / 10%);
+  pointer-events: none;
+}
+
+.group-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 6px 14px;
+  background: var(--tile-head);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 45%);
+}
+
+.group-bar[hidden] {
+  display: none;
+}
+
+.group-bar-count {
+  color: var(--muted);
+  margin-right: 6px;
+}
+
+.group-bar button,
+.group-menu-item {
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 5px 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.group-bar button:hover,
+.group-menu-item:hover {
+  background: rgb(255 255 255 / 8%);
+}
+
+.group-bar button[data-act="group"] {
+  border-color: var(--border-focus);
+  color: var(--accent);
+}
+
+.group-menu {
+  position: fixed;
+  z-index: 70;
+  visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 190px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--tile-head);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
+}
+
+.group-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.group-menu-item.checked::after {
+  content: "✓";
+  margin-left: auto;
+  color: var(--accent);
+}
+
+.group-menu-item.danger {
+  color: var(--danger);
+}
+
+.group-menu-sep {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--border);
+}
+
+.group-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: hsl(var(--group-hue) 60% 62%);
+}
+
+.group-swatches {
+  display: flex;
+  gap: 6px;
+  padding: 6px 10px;
+}
+
+.group-swatches button {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: hsl(var(--group-hue) 60% 62%);
+  cursor: pointer;
+  padding: 0;
+}
+
+.group-swatches button.on {
+  border-color: var(--text);
+}

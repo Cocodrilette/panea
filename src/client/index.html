@@ -36,7 +36,7 @@
       <div class="popover-host" id="more-menu">
         <button type="button" id="more-btn" class="popover-trigger" title="Más acciones">⋯</button>
         <div class="popover-panel popover-panel--menu" id="more-panel" hidden>
-          <button data-act="grid" title="Reordenar en grilla, agrupada por sesión (⌘G)">Grilla</button>
+          <button data-act="grid" title="Reordenar en grilla, por grupo (⌘G)">Grilla</button>
           <button data-act="discover" title="Re-escanear tmux (⌘R)">Rescan</button>
           <select id="projects" title="Arrancar un proyecto de tmuxinator">
             <option value="">tmuxinator…</option>
@@ -57,8 +57,11 @@
           <p>⌘/ctrl + scroll o pinch → <b>zoom</b></p>
           <p>click en terminal → <b>foco</b></p>
           <p>⌘esc o click al fondo → <b>soltar foco</b></p>
-          <p>arrastrar el nombre de una sesión → <b>mover sus tiles</b></p>
-          <p>⌘G → <b>reempaquetar por sesión</b></p>
+          <p>arrastrar el nombre de un grupo → <b>mover sus tiles</b></p>
+          <p>soltar un tile en otro marco / fuera del suyo → <b>cambiarlo de grupo</b></p>
+          <p>shift + click o shift + arrastrar → <b>seleccionar y agrupar</b></p>
+          <p>doble click en un grupo → <b>renombrar</b></p>
+          <p>⌘G → <b>reempaquetar por grupo</b></p>
           <p>⌘K, ↑↓ y enter → <b>saltar a un pane</b></p>
           <p>⌘⌥ o ctrl+⌥ + flechas → <b>foco al tile vecino</b></p>
           <p>⌥⇧1…9 / ⌥1…9 → <b>guardar / ir a una vista</b></p>

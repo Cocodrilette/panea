@@ -21,10 +21,16 @@ export function loadLayout(): Layout {
       viewport: raw.viewport ?? EMPTY.viewport,
       hidden: raw.hidden ?? [],
       views: Array.isArray(raw.views) ? raw.views : [],
+      groups: isRecord(raw.groups) ? raw.groups : {},
+      groupOf: isRecord(raw.groupOf) ? raw.groupOf : {},
     }
   } catch {
     return structuredClone(EMPTY)
   }
+}
+
+function isRecord<T>(v: T | undefined): v is T {
+  return typeof v === 'object' && v !== null && !Array.isArray(v)
 }
 
 let pending: Layout | null = null

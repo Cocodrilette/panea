@@ -5,7 +5,7 @@ import { Activity } from './activity.ts'
 import type { ClientMessage, Layout, ServerMessage, TileBox, TileSpec } from '../shared/protocol.ts'
 import { fitTarget, flyTo, revealTarget } from './camera.ts'
 import { highlight, rank, type Field } from './fuzzy.ts'
-import { Groups, packBySession } from './groups.ts'
+import { Groups, packByGroup } from './groups.ts'
 import { hasFiles, imagesFrom, quotePath, uploadImage } from './images.ts'
 import { arrowChord, nearestInDirection, type Direction } from './spatial.ts'
 import { measureCell, snapSize, type Cell } from './metrics.ts'
@@ -33,7 +33,12 @@ let DEFAULT_SIZE = snapSize(780, 460, cell)
 
 const viewport = new Viewport(root, world)
 const tiles = new Map<string, Tile>()
-const groups = new Groups(world, () => tiles.values(), { zoom: () => viewport.zoom, onMoved: () => saveLayout() })
+const groups = new Groups(root, world, () => tiles.values(), {
+  zoom: () => viewport.zoom,
+  toWorld: (x, y) => viewport.screenToWorld(x, y),
+  layout: () => layout,
+  save: () => saveLayout(),
+})
 
 let layout: Layout = { tiles: {}, viewport: viewport.state, hidden: [] }
 const views = new Views(viewport, { layout: () => layout, save: () => saveLayout(), toast: (m, k) => void toast(m, k) })
@@ -79,6 +84,7 @@ function handle(msg: ServerMessage): void {
       layoutWasFresh = !Object.keys(layout.tiles).length
       viewport.state = layout.viewport
       views.render()
+      groups.refresh()
       fillProjects(msg.projects)
       syncTiles(msg.tiles)
       if (layoutWasFresh) packTiles()
@@ -155,6 +161,8 @@ function addTile(spec: TileSpec): void {
     onFocus: (t) => focus(t),
     onChange: () => saveLayout(),
     onDragStart: (t) => raise(t),
+    onDragMove: (t, x, y) => groups.tileDragMove(t, x, y),
+    onDragEnd: (t) => groups.tileDragEnd(t),
     onClose: (t) => closeTile(t),
     onKill: (t) => killTile(t),
     onDecouple: (t) => decouplePane(t),
@@ -328,14 +336,14 @@ function overlaps(a: TileBox, b: TileBox): boolean {
 }
 
 /**
- * Pack the tiles, session by session (see packBySession), without touching their sizes. A tile's size belongs
+ * Pack the tiles, group by group (see packByGroup), without touching their sizes. A tile's size belongs
  * to its tmux pane, so laying out the canvas must never resize anything —
  * asking every tile of a shared window for a new size would just make them
  * fight over the window they live in.
  */
 function packTiles(): void {
   if (!tiles.size) return
-  packBySession(tiles.values(), GAP)
+  packByGroup(tiles.values(), GAP, groups)
   for (const tile of tiles.values()) tile.applyBox()
   saveLayout()
   fitAll()

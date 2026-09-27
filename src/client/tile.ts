@@ -21,6 +21,9 @@ export interface TileHandlers {
   onFocus(tile: Tile): void
   onChange(): void
   onDragStart(tile: Tile): void
+  /** The title bar is being dragged; screen coordinates of the pointer. */
+  onDragMove(tile: Tile, x: number, y: number): void
+  onDragEnd(tile: Tile): void
   onClose(tile: Tile): void
   onKill(tile: Tile): void
   onDecouple(tile: Tile): void
@@ -342,12 +345,14 @@ export class Tile {
         this.box.x = Math.round(start.bx + (e.clientX - start.x) / scale)
         this.box.y = Math.round(start.by + (e.clientY - start.y) / scale)
         this.applyBox()
+        this.handlers.onDragMove(this, e.clientX, e.clientY)
       }
       const up = () => {
         head.classList.remove('dragging')
         head.removeEventListener('pointermove', move)
         head.removeEventListener('pointerup', up)
         head.removeEventListener('pointercancel', up)
+        this.handlers.onDragEnd(this)
         this.handlers.onChange()
       }
       head.addEventListener('pointermove', move)
