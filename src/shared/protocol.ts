@@ -76,6 +76,32 @@ export interface GroupDef {
   hue?: number
 }
 
+/**
+ * The canvas side of a tmuxinator project, kept under a `canvas:` key in its
+ * .yml (tmuxinator ignores keys it does not know). Tiles are keyed relative
+ * to the project — `<window name>/<pane index>` — so the arrangement follows
+ * the project to whatever session it is started as.
+ */
+export interface CanvasBlock {
+  tiles: Record<string, { x: number; y: number; w: number; h: number }>
+  hidden?: string[]
+  groups?: Record<string, GroupDef>
+  /** Same meaning as `Layout.groupOf`, keyed like `tiles`. */
+  groupOf?: Record<string, string>
+  /**
+   * tmux's exact layout per window, for windows whose own `layout:` is a
+   * named one (`even-horizontal`…) that records no sizes. Keeps the panes
+   * the size their tiles were saved at without rewriting the user's line.
+   */
+  layouts?: Record<string, string>
+}
+
+/** One .yml, on its way to disk or to the browser. */
+export interface ProjectFile {
+  name: string
+  text: string
+}
+
 export type ClientMessage =
   | { type: 'open'; id: string; cols: number; rows: number }
   | { type: 'close'; id: string }
@@ -88,6 +114,21 @@ export type ClientMessage =
   | { type: 'spawn'; cwd?: string; command?: string; name?: string }
   | { type: 'start-project'; name: string }
   | { type: 'kill'; id: string }
+  /**
+   * Write sessions out as tmuxinator projects: `sessions` maps each session to
+   * the project it goes into (several sessions may share one). `disk` saves
+   * them in the tmuxinator dir, `download` hands the files back instead.
+   * `overwrite` names projects the user agreed to regenerate from scratch.
+   */
+  | {
+      type: 'export-projects'
+      sessions: Record<string, string>
+      layout: Layout
+      target: 'disk' | 'download'
+      overwrite?: string[]
+    }
+  /** Install .yml files in the tmuxinator dir and start them. */
+  | { type: 'import-projects'; files: ProjectFile[]; overwrite?: string[] }
 
 export type ServerMessage =
   | { type: 'init'; tiles: TileSpec[]; layout: Layout; projects: string[]; warnings: string[] }
@@ -107,3 +148,17 @@ export type ServerMessage =
    */
   | { type: 'spawned'; session: string }
   | { type: 'error'; message: string }
+  /**
+   * A project is about to start (or was just saved over a running one): place
+   * its tiles. Sent before the tile list that shows them, so each lands
+   * straight where the file says.
+   */
+  | { type: 'canvas'; session: string; canvas: CanvasBlock }
+  | { type: 'exported'; target: 'disk' | 'download'; files: ProjectFile[]; warnings: string[] }
+  /**
+   * Nothing was written: these projects already exist and would be replaced
+   * wholesale. The client asks, then repeats the request with `overwrite`.
+   */
+  | { type: 'project-conflict'; request: 'export-projects' | 'import-projects'; names: string[] }
+  | { type: 'imported'; names: string[] }
+  | { type: 'projects'; projects: string[] }

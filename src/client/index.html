@@ -49,9 +49,6 @@
         <div class="popover-panel popover-panel--menu" id="more-panel" hidden>
           <button data-act="grid" title="Reordenar en grilla, por grupo (⌘G)">Grilla</button>
           <button data-act="discover" title="Re-escanear tmux (⌘R)">Rescan</button>
-          <select id="projects" title="Arrancar un proyecto de tmuxinator">
-            <option value="">tmuxinator…</option>
-          </select>
           <select id="theme" title="Tema claro u oscuro">
             <option value="system">Tema: sistema</option>
             <option value="light">Tema: claro</option>
@@ -61,6 +58,16 @@
             <span class="views-label">Vistas guardadas</span>
             <ul id="views-list"></ul>
             <button type="button" id="views-add" title="Guardar la cámara actual (⌥⇧1…9)">+ Guardar vista</button>
+          </div>
+          <div id="projects-section">
+            <span class="views-label">tmuxinator</span>
+            <select id="projects" title="Arrancar un proyecto de tmuxinator y colocar sus tiles">
+              <option value="">Arrancar…</option>
+            </select>
+            <button type="button" id="projects-save" title="Escribir las sesiones como proyectos en ~/.config/tmuxinator, con posiciones y grupos">Guardar…</button>
+            <button type="button" id="projects-export" title="Descargar las sesiones como .yml de tmuxinator">Exportar…</button>
+            <button type="button" id="projects-import" title="Instalar .yml de tmuxinator y arrancarlos">Importar…</button>
+            <input type="file" id="projects-file" accept=".yml,.yaml" multiple hidden />
           </div>
         </div>
       </div>

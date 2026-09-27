@@ -54,8 +54,32 @@ primer slot libre. El atajo no es ⌘⇧dígito porque macOS se queda con ⌘⇧
 y de Chrome. ⌥dígito funciona aunque una terminal tenga el foco; el precio es
 que las terminales dejan de recibir Meta-1…9.
 
-El layout (posición, cámara y vistas guardadas) se guarda en
+El layout (posición, cámara, grupos y vistas guardadas) se guarda en
 `~/.config/terminal-canvas/layout.json` y se restaura al abrir.
+
+### Proyectos de tmuxinator
+
+La sección *tmuxinator* del menú `⋯` guarda el canvas como proyectos de
+tmuxinator, así una configuración de terminales se puede versionar, pasar a
+otra máquina o levantar de cero:
+
+- **Guardar…** escribe cada sesión en `~/.config/tmuxinator/<proyecto>.yml`.
+  Si el proyecto ya existe (p.ej. `unergy.yml`) sólo se reescribe su bloque
+  `canvas:`; los comandos y comentarios escritos a mano no se tocan. Si no
+  existe se genera entero desde tmux: windows, `layout` exacto, directorios y
+  el comando de cada pane leído de la tabla de procesos — se recupera
+  `python manage.py runserver`, no lo que corría antes en la misma línea
+  (`av && …`), así que conviene revisarlo. Varias sesiones con el mismo nombre
+  de proyecto se juntan en uno (útil para las terminales creadas desde el canvas).
+- **Exportar…** hace lo mismo pero descarga los `.yml`.
+- **Importar…** instala `.yml` en el directorio de tmuxinator y los arranca.
+- **Arrancar…** levanta un proyecto instalado. En los tres casos los tiles
+  caen donde dice su bloque `canvas:`; si la sesión ya corría, sólo se mueven.
+
+El bloque `canvas:` (tmuxinator ignora las claves que no conoce) guarda la
+posición y tamaño de cada pane como `<window>/<pane>`, los nombres y colores de
+sus grupos, y para las windows con un layout con nombre (`even-horizontal`…) el
+layout exacto de tmux, para que los panes vuelvan con el tamaño de su tile.
 
 ### Imágenes
 
@@ -176,7 +200,8 @@ playwright y escribe `assets/icons/*.png`, que sí se versionan).
 src/server/index.ts    servidor HTTP + WebSocket, rutas pane → navegador
 src/server/control.ts  cliente de tmux control mode (protocolo de líneas)
 src/server/tmux.ts     descubrimiento, dimensionado y ciclo de vida
-src/server/store.ts    layout persistido y proyectos de tmuxinator
+src/server/store.ts    layout persistido
+src/server/tmuxinator.ts proyectos de tmuxinator: listar, arrancar, guardar, importar
 src/server/uploads.ts  imágenes soltadas/pegadas, guardadas en disco
 src/client/viewport.ts cámara pan/zoom (una sola CSS transform)
 src/client/camera.ts   vuelos animados de la cámara (encajar, revelar un tile)
@@ -188,6 +213,7 @@ src/client/groups.ts   grupos: marcos, editor (arrastrar, chip, selección) y �
 src/client/activity.ts salida nueva, campana y "espera respuesta" por tile
 src/client/images.ts   subida de imágenes y la ruta que se teclea
 src/client/views.ts    vistas guardadas: marcadores de cámara, atajos y menú
+src/client/projects.ts guardar / exportar / importar proyectos de tmuxinator
 src/client/metrics.ts  medición del tamaño de celda
 src/client/sw.js       service worker de la PWA (shell cacheado, network-first)
 src/client/manifest.webmanifest

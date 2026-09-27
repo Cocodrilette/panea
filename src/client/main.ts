@@ -2,13 +2,14 @@ import '@xterm/xterm/css/xterm.css'
 import './styles.css'
 
 import { Activity } from './activity.ts'
-import type { ClientMessage, Layout, ServerMessage, TileBox, TileSpec } from '../shared/protocol.ts'
+import type { CanvasBlock, ClientMessage, Layout, ServerMessage, TileBox, TileSpec } from '../shared/protocol.ts'
 import { fitTarget, flyTo, revealTarget } from './camera.ts'
 import { highlight, rank, type Field } from './fuzzy.ts'
 import { Groups, packByGroup } from './groups.ts'
 import { hasFiles, imagesFrom, quotePath, uploadImage } from './images.ts'
 import { arrowChord, nearestInDirection, type Direction } from './spatial.ts'
 import { measureCell, snapSize, type Cell } from './metrics.ts'
+import { Projects } from './projects.ts'
 import { Guides, SNAP_PX, snapMove as snapTileMove, snapResize as snapTileResize } from './guides.ts'
 import { Tile } from './tile.ts'
 import { currentTheme, onThemeChange, setThemePref, themePref, type ThemeName, type ThemePref } from './theme.ts'
@@ -23,7 +24,6 @@ const root = document.getElementById('viewport') as HTMLDivElement
 const world = document.getElementById('world') as HTMLDivElement
 const statusEl = document.getElementById('status') as HTMLSpanElement
 const zoomEl = document.getElementById('zoom-readout') as HTMLButtonElement
-const projectsEl = document.getElementById('projects') as HTMLSelectElement
 const toastsEl = document.getElementById('toasts') as HTMLDivElement
 const sessionPanelEl = document.getElementById('session-picker-panel') as HTMLDivElement
 const sessionSearchEl = document.getElementById('session-search') as HTMLInputElement
@@ -47,6 +47,17 @@ const guides = new Guides(world)
 
 let layout: Layout = { tiles: {}, viewport: viewport.state, hidden: [] }
 const views = new Views(viewport, { layout: () => layout, save: () => saveLayout(), toast: (m, k) => void toast(m, k) })
+const projects = new Projects({
+  sessions: () => canvasSessions(),
+  layout: () => {
+    flushLayoutNow()
+    return layout
+  },
+  send: (msg) => sendMsg(msg),
+  toast: (m, k) => void toast(m, k),
+  apply: (session, canvas) => applyCanvas(session, canvas),
+  closeMenu: () => morePopover.close(),
+})
 let focused: Tile | null = null
 let topZ = 1
 let socket: WebSocket | null = null
@@ -83,6 +94,7 @@ function connect(attempt = 0): void {
 }
 
 function handle(msg: ServerMessage): void {
+  if (projects.handle(msg)) return
   switch (msg.type) {
     case 'init':
       layout = msg.layout
@@ -90,7 +102,7 @@ function handle(msg: ServerMessage): void {
       viewport.state = layout.viewport
       views.render()
       groups.refresh()
-      fillProjects(msg.projects)
+      projects.fill(msg.projects)
       syncTiles(msg.tiles)
       if (layoutWasFresh) packTiles()
       if (layout.viewport.zoom === 1 && layout.viewport.x === 0 && layout.viewport.y === 0) fitAll()
@@ -603,7 +615,7 @@ const sessionPopover = createPopover('session-picker', 'session-picker-btn', 'se
   renderSessionList()
   sessionSearchEl.focus()
 })
-createPopover('more-menu', 'more-btn', 'more-panel')
+const morePopover = createPopover('more-menu', 'more-btn', 'more-panel')
 createPopover('help-menu', 'help-btn', 'help-panel')
 
 /* ------------------------------ session picker ---------------------------- */
@@ -716,11 +728,66 @@ setInterval(() => {
 let saveTimer: number | undefined
 function saveLayout(): void {
   clearTimeout(saveTimer)
-  saveTimer = setTimeout(() => {
-    layout.viewport = viewport.state
-    for (const [id, tile] of tiles) layout.tiles[id] = tile.box
-    sendMsg({ type: 'layout', layout })
-  }, 300) as unknown as number
+  saveTimer = setTimeout(flushLayoutNow, 300) as unknown as number
+}
+
+/** Bring the layout up to date and send it, skipping the debounce. */
+function flushLayoutNow(): void {
+  clearTimeout(saveTimer)
+  layout.viewport = viewport.state
+  for (const [id, tile] of tiles) layout.tiles[id] = tile.box
+  sendMsg({ type: 'layout', layout })
+}
+
+/* ------------------------------- projects -------------------------------- */
+
+/** Each session on the canvas once, with its first window's name. */
+function canvasSessions(): { session: string; window: string }[] {
+  const out = new Map<string, string>()
+  const specs = [...tiles.values()].map((t) => t.spec).sort((a, b) => a.id.localeCompare(b.id))
+  for (const spec of specs) if (!out.has(spec.session)) out.set(spec.session, windowNameOf(spec))
+  return [...out].map(([session, window]) => ({ session, window })).sort((a, b) => a.session.localeCompare(b.session))
+}
+
+/**
+ * Put a project's tiles where its `canvas:` block says. Tiles already on the
+ * canvas move there now; the rest find their box in the layout when tmux
+ * reports them, which is why the server sends this before the tile list.
+ */
+function applyCanvas(session: string, canvas: CanvasBlock): void {
+  const prefix = `tmux:${session}/`
+  const defs = (layout.groups ??= {})
+  const groupOf = (layout.groupOf ??= {})
+
+  for (const [gid, def] of Object.entries(canvas.groups ?? {})) defs[gid] = { ...defs[gid], ...def }
+
+  for (const [key, b] of Object.entries(canvas.tiles)) {
+    const id = prefix + key
+    layout.hidden = layout.hidden.filter((h) => h !== id)
+    const tile = tiles.get(id)
+    const box: TileBox = { x: b.x, y: b.y, w: b.w, h: b.h, z: tile?.box.z ?? layout.tiles[id]?.z ?? 0 }
+    if (tile) {
+      Object.assign(tile.box, box)
+      tile.applyBox()
+      tile.resizeTerm()
+    } else {
+      layout.tiles[id] = box
+    }
+    // A tile the file does not group is in its session's group.
+    if (!(key in (canvas.groupOf ?? {}))) delete groupOf[id]
+  }
+  for (const [key, gid] of Object.entries(canvas.groupOf ?? {})) groupOf[prefix + key] = gid
+
+  for (const key of canvas.hidden ?? []) {
+    const tile = tiles.get(prefix + key)
+    if (tile) closeTile(tile)
+    else if (!layout.hidden.includes(prefix + key)) layout.hidden.push(prefix + key)
+  }
+
+  // The file decided where things go: no auto-pack after this.
+  layoutWasFresh = false
+  groups.refresh()
+  saveLayout()
 }
 
 viewport.onChange = () => {
@@ -751,28 +818,6 @@ function toast(message: string, kind: 'info' | 'warn' | 'error' = 'info', ms?: n
   if (life > 0) setTimeout(() => el.remove(), life)
   return el
 }
-
-function fillProjects(projects: string[]): void {
-  projectsEl.textContent = ''
-  const head = document.createElement('option')
-  head.value = ''
-  head.textContent = 'tmuxinator…'
-  projectsEl.appendChild(head)
-  for (const name of projects) {
-    const opt = document.createElement('option')
-    opt.value = name
-    opt.textContent = name
-    projectsEl.appendChild(opt)
-  }
-}
-
-projectsEl.addEventListener('change', () => {
-  const name = projectsEl.value
-  projectsEl.value = ''
-  if (!name) return
-  toast(`arrancando ${name}…`)
-  sendMsg({ type: 'start-project', name })
-})
 
 const themeEl = document.getElementById('theme') as HTMLSelectElement
 const themeToggleEl = document.getElementById('theme-toggle') as HTMLButtonElement
@@ -858,10 +903,7 @@ root.addEventListener('pointerdown', (ev) => {
 })
 
 window.addEventListener('resize', () => viewport.apply())
-window.addEventListener('beforeunload', () => {
-  layout.viewport = viewport.state
-  sendMsg({ type: 'layout', layout })
-})
+window.addEventListener('beforeunload', () => flushLayoutNow())
 
 // El service worker es lo que hace que Chrome ofrezca "Instalar app"; si el
 // registro falla (servido desde un host que no es loopback, p.ej.) la app

@@ -1,0 +1,126 @@
+/* ---------- tmuxinator projects (⋯ menu section + save/export dialog) ---------- */
+
+#projects-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.projects-dialog {
+  width: min(520px, calc(100vw - 32px));
+  padding: 16px;
+  background: var(--tile-head);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-float);
+  font: 13px/1.4 system-ui, -apple-system, sans-serif;
+}
+
+.projects-dialog::backdrop {
+  background: rgb(0 0 0 / 35%);
+}
+
+.projects-dialog h2 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.projects-intro {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.projects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.projects-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.1fr) 72px;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.projects-row:hover {
+  background: var(--hover);
+}
+
+.projects-session {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 12px;
+}
+
+.projects-row input[type='text'] {
+  min-width: 0;
+  background: var(--tile);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 7px;
+  font: 12px ui-monospace, Menlo, monospace;
+}
+
+.projects-row input[type='text']:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.projects-row input[type='text'].invalid {
+  border-color: var(--danger);
+}
+
+.projects-note {
+  color: var(--muted);
+  font-size: 11px;
+  text-align: right;
+}
+
+.projects-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.projects-actions button {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 5px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.projects-actions button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.projects-actions button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+.projects-actions button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

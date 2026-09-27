@@ -182,6 +182,124 @@ export async function capturePane(paneId: string): Promise<string> {
   }
 }
 
+/* ------------------------------ snapshotting ----------------------------- */
+
+export interface PaneSnapshot {
+  index: number
+  cwd: string
+  /** What the pane is running, as best we can tell; null for an idle shell. */
+  command: string | null
+}
+
+export interface WindowSnapshot {
+  name: string
+  /** tmux's own layout string, which tmuxinator accepts as-is. */
+  layout: string
+  panes: PaneSnapshot[]
+}
+
+const SHELLS = new Set(['sh', 'bash', 'zsh', 'fish', 'dash', 'ksh', 'tcsh', 'csh', 'nu', 'elvish', 'xonsh'])
+
+/**
+ * A session's windows and panes, in order, with enough to recreate them.
+ *
+ * tmux only knows the name of the program in the foreground, not how it was
+ * launched, so the command line comes from the process table: the pane's
+ * first child when its own process is a shell. That recovers `python manage.py
+ * runserver` but not whatever ran before it on the same line (`av && …`).
+ */
+export async function describeSession(session: string): Promise<WindowSnapshot[]> {
+  const FIELDS = [
+    '#{window_index}',
+    '#{window_name}',
+    '#{window_layout}',
+    '#{pane_index}',
+    '#{pane_current_path}',
+    '#{pane_pid}',
+    '#{pane_current_command}',
+    '#{pane_start_command}',
+  ]
+  const out = await tmux(['list-panes', '-s', '-t', `=${session}`, '-F', FIELDS.join(SEP)])
+  const procs = await processTable()
+
+  const windows = new Map<number, WindowSnapshot>()
+  for (const line of out.split('\n').filter(Boolean)) {
+    const f = line.split(SEP)
+    if (f.length !== FIELDS.length) continue
+    const [windowIndex, name, layout, paneIndex, cwd, pid, current, start] = f
+    const key = Number(windowIndex)
+    let win = windows.get(key)
+    if (!win) windows.set(key, (win = { name, layout, panes: [] }))
+    win.panes.push({ index: Number(paneIndex), cwd, command: paneCommand(Number(pid), current, start, procs) })
+  }
+
+  return [...windows.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([, w]) => ({ ...w, panes: w.panes.sort((a, b) => a.index - b.index) }))
+}
+
+interface Proc {
+  ppid: number
+  args: string
+}
+
+async function processTable(): Promise<Map<number, Proc>> {
+  const table = new Map<number, Proc>()
+  try {
+    const { stdout } = await exec('ps', ['-A', '-o', 'pid=,ppid=,args='], { maxBuffer: 16 * 1024 * 1024 })
+    for (const line of stdout.split('\n')) {
+      const m = /^\s*(\d+)\s+(\d+)\s+(.*)$/.exec(line)
+      if (m) table.set(Number(m[1]), { ppid: Number(m[2]), args: m[3].trim() })
+    }
+  } catch {
+    // Without ps every pane just comes out as a shell.
+  }
+  return table
+}
+
+function isShell(name: string): boolean {
+  return SHELLS.has(basename(name.replace(/^-/, '')))
+}
+
+function paneCommand(pid: number, current: string, start: string, procs: Map<number, Proc>): string | null {
+  // Set only when the pane was created with a command of its own; tmux quotes it.
+  const started = start.replace(/^"(.*)"$/, '$1').trim()
+  if (started && !isShell(started.split(/\s+/)[0])) return started
+  if (isShell(current)) return null
+
+  const own = procs.get(pid)
+  if (own && !isShell(own.args.split(/\s+/)[0])) return own.args
+  for (const [, proc] of procs) if (proc.ppid === pid) return proc.args
+  return current || null
+}
+
+/**
+ * tmux's layout strings carry the window size they were taken at
+ * (`3ab2,120x40,0,0[…]`), but tmuxinator applies them to a detached session's
+ * default 80×24 window, so tmux shrinks every pane to fit. Growing the window
+ * back to that size and applying the layout again gives each pane exactly the
+ * size it was saved with — which is what its tile's box was measured from.
+ */
+export async function restoreWindowLayouts(session: string, layouts: { window: string; layout: string }[]): Promise<void> {
+  if (!layouts.length) return
+  let out: string
+  try {
+    out = await tmux(['list-windows', '-t', `=${session}`, '-F', `#{window_id}${SEP}#{window_name}`])
+  } catch {
+    return
+  }
+  const ids = new Map(out.split('\n').filter(Boolean).map((l) => l.split(SEP).reverse() as [string, string]))
+
+  for (const { window, layout } of layouts) {
+    const id = ids.get(window)
+    const size = /^[0-9a-f]{4},(\d+)x(\d+),/.exec(layout)
+    if (!id || !size) continue
+    await takeWindowSize(id)
+    await tmuxQuiet(['resize-window', '-t', id, '-x', size[1], '-y', size[2]])
+    await tmuxQuiet(['select-layout', '-t', id, layout])
+  }
+}
+
 /* --------------------------------- sizing -------------------------------- */
 
 const manualWindows = new Set<string>()

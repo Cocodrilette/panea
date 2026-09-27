@@ -23,15 +23,26 @@ import {
   decouplePane,
   discoverTiles,
   killPane,
+  liveSessions,
   pruneLegacyViews,
   releaseAllWindowSizes,
   releaseWindowSize,
+  restoreWindowLayouts,
   serverRunning,
   sizePane,
   nextShellName,
   spawnShell,
 } from './tmux.ts'
-import { listProjects, loadLayout, saveLayout, startProject } from './store.ts'
+import { flushLayout, loadLayout, saveLayout } from './store.ts'
+import {
+  buildProjects,
+  importProjects,
+  listProjects,
+  readProject,
+  startProject,
+  writeProjects,
+  type ProjectInfo,
+} from './tmuxinator.ts'
 import { MAX_UPLOAD_BYTES, isSupportedImage, saveImage } from './uploads.ts'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
@@ -281,6 +292,27 @@ async function pushTiles(): Promise<void> {
   broadcast({ type: 'tiles', tiles, warnings })
 }
 
+/**
+ * Start a tmuxinator project and put its tiles where its `canvas:` block says.
+ * The block goes out first so the tiles are placed as they appear, instead of
+ * landing on a free spot and jumping. A session that is already running is
+ * left as it is in tmux; only its tiles move.
+ */
+async function launchProject(name: string): Promise<void> {
+  let project: ProjectInfo | null = null
+  try {
+    project = readProject(name)
+  } catch (err) {
+    // Unreadable here (ERB, say) is no reason not to start it: tmuxinator may cope.
+    console.log(`[tcv] no pude leer el proyecto ${name}: ${err instanceof Error ? err.message : err}`)
+  }
+  const fresh = project ? !(await liveSessions()).has(project.session) : false
+  if (project?.canvas) broadcast({ type: 'canvas', session: project.session, canvas: project.canvas })
+  await startProject(name)
+  if (project && fresh) await restoreWindowLayouts(project.session, project.layouts)
+  await pushTiles()
+}
+
 /* ------------------------------- websocket ------------------------------- */
 
 wss.on('connection', async (ws) => {
@@ -364,9 +396,40 @@ wss.on('connection', async (ws) => {
         }
 
         case 'start-project':
-          await startProject(msg.name)
-          await pushTiles()
+          await launchProject(msg.name)
           break
+
+        case 'export-projects': {
+          let built = await buildProjects(msg.sessions, msg.layout, msg.overwrite)
+          // Replacing a file is only a question when something is written.
+          if (built.conflicts.length && msg.target === 'download') {
+            built = await buildProjects(msg.sessions, msg.layout, [...(msg.overwrite ?? []), ...built.conflicts])
+          }
+          if (built.conflicts.length) {
+            send(ws, { type: 'project-conflict', request: 'export-projects', names: built.conflicts })
+            break
+          }
+          if (msg.target === 'disk') {
+            saveLayout(msg.layout)
+            writeProjects(built.files)
+            broadcast({ type: 'projects', projects: listProjects() })
+          }
+          const files = built.files.map(({ name, text }) => ({ name, text }))
+          send(ws, { type: 'exported', target: msg.target, files, warnings: built.warnings })
+          break
+        }
+
+        case 'import-projects': {
+          const result = importProjects(msg.files, msg.overwrite)
+          if (result.conflicts.length) {
+            send(ws, { type: 'project-conflict', request: 'import-projects', names: result.conflicts })
+            break
+          }
+          broadcast({ type: 'projects', projects: listProjects() })
+          for (const name of result.installed) await launchProject(name)
+          send(ws, { type: 'imported', names: result.installed })
+          break
+        }
       }
     } catch (err) {
       send(ws, { type: 'error', message: err instanceof Error ? err.message : String(err) })
@@ -444,6 +507,7 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, () => {
     if (shuttingDown) process.exit(0)
     shuttingDown = true
+    flushLayout()
     // Hand window sizing back to tmux and detach; the sessions keep running.
     for (const client of controls.values()) client.close()
     const timeout = setTimeout(() => process.exit(0), 1500)
