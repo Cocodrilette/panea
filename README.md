@@ -33,6 +33,7 @@ no duplica servidores ni pelea por los puertos.
 | ⌘0 / ⌘1 / ⌘G | encajar todo / zoom 100% / reempaquetar por sesión |
 | ⌘T / ⌘R | terminal nueva / re-escanear tmux |
 | ⌥⇧1…9 / ⌥1…9 | guardar la cámara en ese slot / volver a ella (animado) |
+| ⌘J, o `⚑` en la barra | ir a la próxima terminal que pide atención |
 | arrastrar o pegar una imagen sobre una terminal | escribir su ruta en el prompt |
 
 Botones de cada tile: `⤢` zoom a esa terminal, `⧉` sacar el pane a su propia
@@ -147,6 +148,16 @@ playwright y escribe `assets/icons/*.png`, que sí se versionan).
   renderizar el terminal vivo y muestran un snapshot de texto, refrescado cada
   1.5 s. Eso es lo que mantiene fluido el zoom-out con una docena de terminales
   escupiendo logs.
+- **Actividad y atención.** Un tile sin foco se marca con un borde de color y
+  una etiqueta en la barra (y una grande sobre el snapshot al alejar): *salida
+  nueva* mientras escribe, *en silencio* cuando dejó de escribir, *campana* si
+  sonó un BEL y *espera respuesta* si se calló sobre algo que parece una
+  pregunta — el diálogo de aprobación de Claude Code, un `[y/N]`, un
+  `Password:`. La heurística es estrecha a propósito: una falsa alarma enseña a
+  ignorarla. Todo pasa en el cliente, leyendo el buffer de xterm; ni el
+  servidor ni tmux se enteran. El repintado al abrir, al redimensionar o al
+  soltar el foco no cuenta como salida nueva. Darle el foco limpia las marcas,
+  y ⌘J (o `⚑`) salta a la más urgente.
 
 ## Estructura
 
@@ -162,6 +173,7 @@ src/client/fuzzy.ts    búsqueda difusa y resaltado del selector ⌘K
 src/client/spatial.ts  el tile vecino en una dirección (⌘⌥ + flechas)
 src/client/tile.ts     tile: xterm, drag, resize, snapshot, drop de imágenes
 src/client/groups.ts   marcos por sesión y el empaquetado agrupado de ⌘G
+src/client/activity.ts salida nueva, campana y "espera respuesta" por tile
 src/client/images.ts   subida de imágenes y la ruta que se teclea
 src/client/views.ts    vistas guardadas: marcadores de cámara, atajos y menú
 src/client/metrics.ts  medición del tamaño de celda

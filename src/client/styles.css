@@ -502,4 +502,94 @@ body {
 
 .group-head:hover .group-label {
   color: hsl(var(--group-hue) 70% 85%);
+/* ---------- activity ---------- */
+
+/* Set by activity.ts on tiles you are not looking at. The ring is drawn in
+   world pixels, so it is thickened in far LOD to stay visible zoomed out. */
+.tile[data-activity] {
+  --act: var(--accent);
+  border-color: var(--act);
+  box-shadow: 0 0 0 2px var(--act), 0 10px 30px rgb(0 0 0 / 45%);
+}
+
+.tile[data-activity="idle"] {
+  --act: #56b6c2;
+}
+
+.tile[data-activity="bell"] {
+  --act: #e5c07b;
+}
+
+.tile[data-activity="attention"] {
+  --act: #ff7a45;
+  animation: act-pulse 1.6s ease-in-out infinite;
+}
+
+.tile[data-lod="far"][data-activity] {
+  box-shadow: 0 0 0 14px var(--act), 0 0 80px 30px color-mix(in srgb, var(--act) 45%, transparent);
+}
+
+.tile[data-lod="far"][data-activity="attention"] {
+  animation-name: act-pulse-far;
+}
+
+@keyframes act-pulse {
+  50% {
+    box-shadow: 0 0 0 4px var(--act), 0 0 30px 6px color-mix(in srgb, var(--act) 55%, transparent);
+  }
+}
+
+@keyframes act-pulse-far {
+  50% {
+    box-shadow: 0 0 0 22px var(--act), 0 0 120px 50px color-mix(in srgb, var(--act) 60%, transparent);
+  }
+}
+
+.tile-activity {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 600;
+  color: #14161c;
+  background: var(--act);
+  border-radius: 999px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+
+/* The same label, big enough to read over a snapshot at 15% zoom. */
+.tile-activity-far {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 8px 30px;
+  border-radius: 999px;
+  background: var(--act);
+  color: #14161c;
+  font-size: 64px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.tile[data-lod="far"][data-activity] .tile-activity-far {
+  display: block;
+}
+
+#attention-btn {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+#attention-btn.pending {
+  color: var(--accent);
+}
+
+#attention-btn.urgent {
+  color: #14161c;
+  background: #ff7a45;
+  border-color: #ff7a45;
+  font-weight: 600;
 }

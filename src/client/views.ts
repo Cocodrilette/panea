@@ -9,7 +9,8 @@
  */
 import './views.css'
 
-import type { Layout, SavedView, Viewport as ViewportState } from '../shared/protocol.ts'
+import type { Layout, SavedView } from '../shared/protocol.ts'
+import { flyTo } from './camera.ts'
 import type { Viewport } from './viewport.ts'
 
 const SLOTS = 9
@@ -26,7 +27,6 @@ export class Views {
   private readonly viewport: Viewport
   private readonly host: ViewsHost
   private readonly listEl: HTMLUListElement
-  private frame = 0
 
   constructor(viewport: Viewport, host: ViewsHost) {
     this.viewport = viewport
@@ -62,7 +62,7 @@ export class Views {
       this.host.toast(`no hay vista en ${slot} — guárdala con ⌥⇧${slot}`, 'warn')
       return
     }
-    this.animateTo(view)
+    flyTo(this.viewport, { x: view.x, y: view.y, zoom: view.zoom }, RECALL_MS)
   }
 
   remove(slot: number): void {
@@ -129,50 +129,6 @@ export class Views {
       li.append(go, edit, del)
       this.listEl.appendChild(li)
     }
-  }
-
-  /**
-   * Glide instead of cutting, so the eye keeps track of where it went. Zoom
-   * is interpolated in log space (each step feels the same size) and position
-   * as the world point at the centre of the screen, which keeps the path from
-   * swinging out wide when zoom and position change together. Any other
-   * camera movement mid-flight (a drag, a pinch) cancels the glide.
-   */
-  private animateTo(to: ViewportState): void {
-    cancelAnimationFrame(this.frame)
-    const from = this.viewport.state
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      this.viewport.state = to
-      return
-    }
-
-    const cx = window.innerWidth / 2
-    const cy = window.innerHeight / 2
-    const c0 = { x: (cx - from.x) / from.zoom, y: (cy - from.y) / from.zoom }
-    const c1 = { x: (cx - to.x) / to.zoom, y: (cy - to.y) / to.zoom }
-    const lz0 = Math.log(from.zoom)
-    const lz1 = Math.log(to.zoom)
-    const start = performance.now()
-    let last = from
-
-    const step = (now: number): void => {
-      const cur = this.viewport.state
-      if (cur.x !== last.x || cur.y !== last.y || cur.zoom !== last.zoom) return
-
-      const t = Math.min(1, (now - start) / RECALL_MS)
-      const e = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2
-      if (t === 1) {
-        this.viewport.state = to
-        return
-      }
-      const zoom = Math.exp(lz0 + (lz1 - lz0) * e)
-      const wx = c0.x + (c1.x - c0.x) * e
-      const wy = c0.y + (c1.y - c0.y) * e
-      this.viewport.state = { x: cx - wx * zoom, y: cy - wy * zoom, zoom }
-      last = this.viewport.state
-      this.frame = requestAnimationFrame(step)
-    }
-    this.frame = requestAnimationFrame(step)
   }
 
   /**
