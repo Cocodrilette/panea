@@ -27,14 +27,15 @@ no duplica servidores ni pelea por los puertos.
 | ⌘esc, o click en el fondo | soltar el foco |
 | ⌘K, escribir, ↑↓ y enter | saltar a un pane: búsqueda difusa por título, window, sesión, comando y cwd; vuela hasta el tile y le da el teclado |
 | ⌘⌥ + flechas, o ctrl+⌥ + flechas | pasar el foco al tile más cercano en esa dirección (desde el centro de la ventana si no hay foco) |
-| arrastrar la barra de título | mover el tile |
+| arrastrar la barra de título | mover el tile (con guías: se imanta a bordes, centros y espaciado de los tiles visibles) |
 | doble click en la barra de título | zoom centrado: ese tile ocupa casi toda la pantalla |
 | arrastrar el nombre de un grupo (su marco) | mover todos sus tiles juntos |
 | arrastrar un tile dentro de otro marco / fuera del suyo | pasarlo a ese grupo / sacarlo del grupo |
 | click en el chip de grupo de un tile | moverlo a otro grupo, a uno nuevo o a ninguno |
 | shift + click en títulos, o shift + arrastrar el fondo | seleccionar tiles para agruparlos juntos |
 | doble click en el nombre de un grupo, o su `⋯` | renombrar, cambiar color, disolver |
-| esquina inferior derecha | redimensionar (ajusta cols/rows reales del pane) |
+| esquina inferior derecha | redimensionar (ajusta cols/rows reales del pane); se imanta al tamaño de otros tiles |
+| mantener ⌥ al mover o redimensionar | soltar las guías: sin imán |
 | ⌘0 / ⌘1 / ⌘G | encajar todo / zoom 100% / reempaquetar por grupo |
 | ⌘T / ⌘R | terminal nueva / re-escanear tmux |
 | ⌥⇧1…9 / ⌥1…9 | guardar la cámara en ese slot / volver a ella (animado) |
@@ -182,6 +183,7 @@ src/client/camera.ts   vuelos animados de la cámara (encajar, revelar un tile)
 src/client/fuzzy.ts    búsqueda difusa y resaltado del selector ⌘K
 src/client/spatial.ts  el tile vecino en una dirección (⌘⌥ + flechas)
 src/client/tile.ts     tile: xterm, drag, resize, snapshot, drop de imágenes
+src/client/guides.ts   guías inteligentes: imán a bordes, centros, espaciado y tamaño
 src/client/groups.ts   grupos: marcos, editor (arrastrar, chip, selección) y ⌘G
 src/client/activity.ts salida nueva, campana y "espera respuesta" por tile
 src/client/images.ts   subida de imágenes y la ruta que se teclea

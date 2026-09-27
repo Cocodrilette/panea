@@ -11,7 +11,6 @@ import {
   rowsFor,
   boxForCells,
   cellFromScreen,
-  snapSize,
   type Cell,
 } from './metrics.ts'
 import { currentTheme, termTheme, type ThemeName } from './theme.ts'
@@ -36,6 +35,14 @@ export interface TileHandlers {
   onImages(tile: Tile, files: File[]): void
   /** Reports the real cell size of the first terminal that mounts. */
   onMeasured(cell: Cell): void
+  /**
+   * Smart guides: where a dragged tile should land, and what size a resized
+   * one should take. `free` (⌥ held) skips snapping for that move.
+   */
+  snapMove(tile: Tile, x: number, y: number, free: boolean): { x: number; y: number }
+  snapResize(tile: Tile, w: number, h: number, free: boolean): { w: number; h: number }
+  /** The gesture ended: take the guides down. */
+  snapEnd(): void
   /** Runs `fn` with the world transform neutralised, for correct measuring. */
   unscaled<T>(fn: () => T): T
 }
@@ -330,12 +337,18 @@ export class Tile {
       const scale = this.currentScale()
 
       const move = (e: PointerEvent) => {
-        this.box.x = Math.round(start.bx + (e.clientX - start.x) / scale)
-        this.box.y = Math.round(start.by + (e.clientY - start.y) / scale)
+        const raw = {
+          x: Math.round(start.bx + (e.clientX - start.x) / scale),
+          y: Math.round(start.by + (e.clientY - start.y) / scale),
+        }
+        const { x, y } = this.handlers.snapMove(this, raw.x, raw.y, e.altKey)
+        this.box.x = x
+        this.box.y = y
         this.applyBox()
         this.handlers.onDragMove(this, e.clientX, e.clientY)
       }
       const up = () => {
+        this.handlers.snapEnd()
         head.classList.remove('dragging')
         head.removeEventListener('pointermove', move)
         head.removeEventListener('pointerup', up)
@@ -374,13 +387,14 @@ export class Tile {
           w: Math.max(240, start.w + (e.clientX - start.x) / scale),
           h: Math.max(HEAD_H + 60, start.h + (e.clientY - start.y) / scale),
         }
-        const snapped = snapSize(raw.w, raw.h, this.cell)
+        const snapped = this.handlers.snapResize(this, raw.w, raw.h, e.altKey)
         this.box.w = snapped.w
         this.box.h = snapped.h
         this.applyBox()
         this.resizeTerm()
       }
       const up = () => {
+        this.handlers.snapEnd()
         handle.removeEventListener('pointermove', move)
         handle.removeEventListener('pointerup', up)
         handle.removeEventListener('pointercancel', up)

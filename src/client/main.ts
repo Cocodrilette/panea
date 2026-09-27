@@ -9,6 +9,7 @@ import { Groups, packByGroup } from './groups.ts'
 import { hasFiles, imagesFrom, quotePath, uploadImage } from './images.ts'
 import { arrowChord, nearestInDirection, type Direction } from './spatial.ts'
 import { measureCell, snapSize, type Cell } from './metrics.ts'
+import { Guides, SNAP_PX, snapMove as snapTileMove, snapResize as snapTileResize } from './guides.ts'
 import { Tile } from './tile.ts'
 import { currentTheme, onThemeChange, setThemePref, themePref, type ThemeName, type ThemePref } from './theme.ts'
 import { MAX_ZOOM, Viewport, type Rect } from './viewport.ts'
@@ -40,6 +41,7 @@ const groups = new Groups(root, world, () => tiles.values(), {
   layout: () => layout,
   save: () => saveLayout(),
 })
+const guides = new Guides(world)
 
 let layout: Layout = { tiles: {}, viewport: viewport.state, hidden: [] }
 const views = new Views(viewport, { layout: () => layout, save: () => saveLayout(), toast: (m, k) => void toast(m, k) })
@@ -183,6 +185,9 @@ function addTile(spec: TileSpec): void {
     onDuplicate: (t) => duplicateTile(t),
     onImages: (t, files) => void pasteImages(t, files),
     onMeasured: (real) => adoptCell(real),
+    snapMove: (t, x, y, free) => snapMove(t, x, y, free),
+    snapResize: (t, w, h, free) => snapResize(t, w, h, free),
+    snapEnd: () => guides.clear(),
     unscaled: (fn) => viewport.unscaled(fn),
   })
 
@@ -197,6 +202,41 @@ function addTile(spec: TileSpec): void {
   saveLayout()
   // A duplicate is something the user just asked for, so hand it the keyboard.
   if (claimed) focus(tile)
+}
+
+/* ------------------------------ smart guides ------------------------------ */
+
+/**
+ * The tiles a moving one can snap to: only those on screen, so something far
+ * off in the canvas never yanks a tile toward an alignment you cannot see.
+ */
+function snapTargets(except: Tile): Rect[] {
+  const tl = viewport.screenToWorld(0, 0)
+  const br = viewport.screenToWorld(window.innerWidth, window.innerHeight)
+  const view = { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y }
+  const out: Rect[] = []
+  for (const t of tiles.values()) if (t !== except && overlaps(t.box, view)) out.push(t.box)
+  return out
+}
+
+function snapMove(tile: Tile, x: number, y: number, free: boolean): { x: number; y: number } {
+  if (free) {
+    guides.clear()
+    return { x, y }
+  }
+  const snap = snapTileMove({ ...tile.box, x, y }, snapTargets(tile), SNAP_PX / viewport.zoom)
+  guides.show(snap.marks, viewport.zoom)
+  return snap
+}
+
+function snapResize(tile: Tile, w: number, h: number, free: boolean): { w: number; h: number } {
+  if (free) {
+    guides.clear()
+    return snapSize(w, h, cell)
+  }
+  const snap = snapTileResize(tile.box, { w, h }, snapTargets(tile), SNAP_PX / viewport.zoom, cell)
+  guides.show(snap.marks, viewport.zoom)
+  return snap
 }
 
 /**
@@ -414,7 +454,7 @@ function walkRight(origin: TileBox, free: (x: number, y: number) => TileBox | nu
   return null
 }
 
-function overlaps(a: TileBox, b: TileBox): boolean {
+function overlaps(a: Rect, b: Rect): boolean {
   return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
 }
 

@@ -18,6 +18,8 @@
   --shadow-tile: 0 10px 30px rgb(0 0 0 / 45%);
   --shadow-focus: 0 14px 40px rgb(0 0 0 / 55%);
   --shadow-float: 0 8px 24px rgb(0 0 0 / 40%);
+  --guide: #ff5c8a;
+  --guide-text: #1a0710;
   --radius: 10px;
   color-scheme: dark;
 }
@@ -43,6 +45,8 @@
   --hover: rgb(0 0 0 / 6%);
   --shadow-tile: 0 1px 2px rgb(20 30 50 / 8%), 0 8px 24px rgb(20 30 50 / 10%);
   --shadow-focus: 0 12px 32px rgb(20 30 50 / 16%);
+  --guide: #e0245e;
+  --guide-text: #fff;
   --shadow-float: 0 6px 20px rgb(20 30 50 / 12%);
   color-scheme: light;
 }
@@ -243,6 +247,75 @@ body {
   cursor: nwse-resize;
   background: linear-gradient(135deg, transparent 50%, var(--border) 50%);
   border-bottom-right-radius: var(--radius);
+}
+
+/* ---------- smart guides ---------- */
+
+/* Lives inside #world, so it is laid out in world px; --s is 1/zoom and
+   keeps strokes and labels the same size on screen at any zoom. */
+.guides {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+}
+
+.guide-line,
+.guide-span {
+  position: absolute;
+  box-sizing: content-box;
+}
+
+.guide-line[data-axis='x'] {
+  border-left: calc(1px * var(--s)) solid var(--guide);
+  margin-left: calc(-0.5px * var(--s));
+}
+
+.guide-line[data-axis='y'] {
+  border-top: calc(1px * var(--s)) solid var(--guide);
+  margin-top: calc(-0.5px * var(--s));
+}
+
+/* A measured stretch: a line with end ticks and a pill label in the middle. */
+.guide-span[data-axis='x'] {
+  border-left: calc(1px * var(--s)) solid var(--guide);
+  border-right: calc(1px * var(--s)) solid var(--guide);
+  height: calc(6px * var(--s)) !important;
+  margin-top: calc(-3px * var(--s));
+  margin-left: calc(-0.5px * var(--s));
+  background: linear-gradient(var(--guide), var(--guide)) center / 100% calc(1px * var(--s)) no-repeat;
+}
+
+.guide-span[data-axis='y'] {
+  border-top: calc(1px * var(--s)) solid var(--guide);
+  border-bottom: calc(1px * var(--s)) solid var(--guide);
+  width: calc(6px * var(--s)) !important;
+  margin-left: calc(-3px * var(--s));
+  margin-top: calc(-0.5px * var(--s));
+  background: linear-gradient(var(--guide), var(--guide)) center / calc(1px * var(--s)) 100% no-repeat;
+}
+
+/* Size markers sit just outside the tile they measure: above it, or left of it. */
+.guide-span.size[data-axis='x'] {
+  margin-top: calc(-12px * var(--s));
+}
+
+.guide-span.size[data-axis='y'] {
+  margin-left: calc(-12px * var(--s));
+}
+
+.guide-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: calc(1px * var(--s)) calc(5px * var(--s));
+  border-radius: calc(4px * var(--s));
+  background: var(--guide);
+  color: var(--guide-text);
+  font: 600 calc(10px * var(--s)) / 1.3 ui-sans-serif, -apple-system, system-ui, sans-serif;
+  white-space: nowrap;
 }
 
 /* ---------- chrome ---------- */
