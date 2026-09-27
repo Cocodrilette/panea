@@ -14,6 +14,7 @@ import {
   snapSize,
   type Cell,
 } from './metrics.ts'
+import { currentTheme, termTheme, type ThemeName } from './theme.ts'
 
 export interface TileHandlers {
   onInput(id: string, data: string): void
@@ -34,30 +35,6 @@ export interface TileHandlers {
   onMeasured(cell: Cell): void
   /** Runs `fn` with the world transform neutralised, for correct measuring. */
   unscaled<T>(fn: () => T): T
-}
-
-const THEME = {
-  background: '#14161c',
-  foreground: '#d7dae1',
-  cursor: '#6ea8fe',
-  cursorAccent: '#14161c',
-  selectionBackground: '#31405e',
-  black: '#22252d',
-  red: '#e06c75',
-  green: '#98c379',
-  yellow: '#e5c07b',
-  blue: '#61afef',
-  magenta: '#c678dd',
-  cyan: '#56b6c2',
-  white: '#c7ccd6',
-  brightBlack: '#5c6370',
-  brightRed: '#ef7a83',
-  brightGreen: '#a9d47f',
-  brightYellow: '#f0cd8b',
-  brightBlue: '#7cc0ff',
-  brightMagenta: '#d98ceb',
-  brightCyan: '#69c8d3',
-  brightWhite: '#e6e9ef',
 }
 
 export class Tile {
@@ -133,7 +110,7 @@ export class Tile {
       fontFamily: FONT_FAMILY,
       fontSize: FONT_SIZE,
       lineHeight: LINE_HEIGHT,
-      theme: THEME,
+      ...termTheme(currentTheme()),
       cursorBlink: true,
       scrollback: SCROLLBACK_LINES,
       macOptionIsMeta: true,
@@ -225,6 +202,12 @@ export class Tile {
 
   get size(): { cols: number; rows: number } {
     return { cols: this.cols || colsFor(this.box.w, this.cell), rows: this.rows || rowsFor(this.box.h, this.cell) }
+  }
+
+  setTheme(name: ThemeName): void {
+    const { theme, minimumContrastRatio } = termTheme(name)
+    this.term.options.theme = theme
+    this.term.options.minimumContrastRatio = minimumContrastRatio
   }
 
   write(data: string): void {

@@ -10,7 +10,41 @@
   --muted: #7e8695;
   --accent: #6ea8fe;
   --danger: #e06c75;
+  --ok: #7ec699;
+  --warn: #e5c07b;
+  --text-strong: #fff;
+  --snapshot: #aab1bf;
+  --hover: rgb(255 255 255 / 8%);
+  --shadow-tile: 0 10px 30px rgb(0 0 0 / 45%);
+  --shadow-focus: 0 14px 40px rgb(0 0 0 / 55%);
+  --shadow-float: 0 8px 24px rgb(0 0 0 / 40%);
   --radius: 10px;
+  color-scheme: dark;
+}
+
+/* --tile must stay equal to the terminal background in theme.ts, or the
+   tile body's padding shows as a frame around the text. */
+:root[data-theme='light'] {
+  --bg: #eceef2;
+  --grid: #cfd3db;
+  --tile: #ffffff;
+  --tile-head: #f6f7f9;
+  --tile-head-focus: #e3ecfb;
+  --border: #d5d9e0;
+  --border-focus: #2f6fdb;
+  --text: #1f2328;
+  --muted: #5f6873;
+  --accent: #0969da;
+  --danger: #c4262e;
+  --ok: #1a7f37;
+  --warn: #9a6700;
+  --text-strong: #0b0d10;
+  --snapshot: #3d444d;
+  --hover: rgb(0 0 0 / 6%);
+  --shadow-tile: 0 1px 2px rgb(20 30 50 / 8%), 0 8px 24px rgb(20 30 50 / 10%);
+  --shadow-focus: 0 12px 32px rgb(20 30 50 / 16%);
+  --shadow-float: 0 6px 20px rgb(20 30 50 / 12%);
+  color-scheme: light;
 }
 
 * {
@@ -62,14 +96,14 @@ body {
   background: var(--tile);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 10px 30px rgb(0 0 0 / 45%);
+  box-shadow: var(--shadow-tile);
   overflow: hidden;
   contain: layout paint;
 }
 
 .tile.focused {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 1px var(--border-focus), 0 14px 40px rgb(0 0 0 / 55%);
+  box-shadow: 0 0 0 1px var(--border-focus), var(--shadow-focus);
 }
 
 .tile.dead {
@@ -135,7 +169,7 @@ body {
 }
 
 .tile-head button:hover {
-  background: rgb(255 255 255 / 8%);
+  background: var(--hover);
   color: var(--text);
 }
 
@@ -162,7 +196,7 @@ body {
   inset: 4px 0 4px 6px;
   margin: 0;
   overflow: hidden;
-  color: #aab1bf;
+  color: var(--snapshot);
   font: 12px/1.15 ui-monospace, "SF Mono", Menlo, monospace;
   white-space: pre;
   pointer-events: none;
@@ -225,7 +259,7 @@ body {
   backdrop-filter: blur(12px);
   border: 1px solid var(--border);
   border-radius: 999px;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
+  box-shadow: var(--shadow-float);
   z-index: 10;
 }
 
@@ -250,7 +284,7 @@ body {
 #toolbar button:hover,
 #toolbar select:hover {
   border-color: var(--accent);
-  color: #fff;
+  color: var(--text-strong);
 }
 
 /* A dropdown's open/closed state is the `hidden` attribute; the panel rule
@@ -263,7 +297,7 @@ body {
 
 .popover-trigger.active {
   border-color: var(--accent);
-  color: #fff;
+  color: var(--text-strong);
 }
 
 .popover-panel {
@@ -277,7 +311,7 @@ body {
   background: var(--tile-head);
   border: 1px solid var(--border);
   border-radius: 10px;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
+  box-shadow: var(--shadow-float);
   z-index: 30;
   cursor: default;
 }
@@ -325,12 +359,12 @@ body {
 
 #session-list li:hover,
 #session-list li:focus {
-  background: rgb(255 255 255 / 8%);
+  background: var(--hover);
   outline: none;
 }
 
 #session-list li.selected {
-  background: rgb(110 168 254 / 16%);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 #session-list mark {
@@ -401,7 +435,7 @@ body {
 }
 
 #status.ok {
-  color: #7ec699;
+  color: var(--ok);
 }
 
 #status.down {
@@ -425,12 +459,12 @@ body {
   border-left: 3px solid var(--accent);
   border-radius: 8px;
   padding: 8px 12px;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
+  box-shadow: var(--shadow-float);
   animation: toast-in 0.15s ease-out;
 }
 
 .toast.warn {
-  border-left-color: #e5c07b;
+  border-left-color: var(--warn);
 }
 
 .toast.error {
@@ -511,7 +545,7 @@ body {
 .tile[data-activity] {
   --act: var(--accent);
   border-color: var(--act);
-  box-shadow: 0 0 0 2px var(--act), 0 10px 30px rgb(0 0 0 / 45%);
+  box-shadow: 0 0 0 2px var(--act), var(--shadow-tile);
 }
 
 .tile[data-activity="idle"] {
@@ -617,7 +651,7 @@ body {
 }
 
 .group-more:hover {
-  background: rgb(255 255 255 / 8%);
+  background: var(--hover);
   color: var(--text);
 }
 
@@ -695,7 +729,7 @@ body {
   position: fixed;
   z-index: 55;
   border: 1px solid var(--accent);
-  background: rgb(110 168 254 / 10%);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
   pointer-events: none;
 }
 
@@ -712,7 +746,7 @@ body {
   background: var(--tile-head);
   border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgb(0 0 0 / 45%);
+  box-shadow: var(--shadow-tile);
 }
 
 .group-bar[hidden] {
@@ -738,7 +772,7 @@ body {
 
 .group-bar button:hover,
 .group-menu-item:hover {
-  background: rgb(255 255 255 / 8%);
+  background: var(--hover);
 }
 
 .group-bar button[data-act="group"] {
@@ -759,7 +793,7 @@ body {
   background: var(--tile-head);
   border: 1px solid var(--border);
   border-radius: 10px;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
+  box-shadow: var(--shadow-float);
 }
 
 .group-menu-item {
@@ -810,4 +844,28 @@ body {
 
 .group-swatches button.on {
   border-color: var(--text);
+}
+
+/* ---------- light theme: group colors ---------- */
+
+/* The group hues above are lightened for a dark canvas; on a light one the
+   same hue has to go dark to stay readable. */
+:root[data-theme='light'] .group-label {
+  color: hsl(var(--group-hue) 60% 32%);
+  text-shadow: 0 1px 4px rgb(255 255 255 / 80%);
+}
+
+:root[data-theme='light'] .group-head:hover .group-label {
+  color: hsl(var(--group-hue) 70% 24%);
+}
+
+:root[data-theme='light'] .group-frame {
+  border-color: hsl(var(--group-hue) 45% 45% / 40%);
+  background: hsl(var(--group-hue) 40% 50% / 7%);
+}
+
+:root[data-theme='light'] .tile-head .tile-group {
+  color: hsl(var(--group-hue) 60% 30%);
+  background: hsl(var(--group-hue) 45% 50% / 12%);
+  border-color: hsl(var(--group-hue) 45% 45% / 40%);
 }

@@ -10,6 +10,7 @@ import { hasFiles, imagesFrom, quotePath, uploadImage } from './images.ts'
 import { arrowChord, nearestInDirection, type Direction } from './spatial.ts'
 import { measureCell, snapSize, type Cell } from './metrics.ts'
 import { Tile } from './tile.ts'
+import { currentTheme, onThemeChange, setThemePref, themePref, type ThemeName, type ThemePref } from './theme.ts'
 import { Viewport, type Rect } from './viewport.ts'
 import { Views } from './views.ts'
 
@@ -632,6 +633,24 @@ projectsEl.addEventListener('change', () => {
   toast(`arrancando ${name}…`)
   sendMsg({ type: 'start-project', name })
 })
+
+const themeEl = document.getElementById('theme') as HTMLSelectElement
+const themeToggleEl = document.getElementById('theme-toggle') as HTMLButtonElement
+
+/** The toggle shows the theme it switches to, like most apps' sun/moon button. */
+function syncThemeControls(name: ThemeName): void {
+  themeEl.value = themePref()
+  themeToggleEl.textContent = name === 'dark' ? '☀' : '☾'
+  themeToggleEl.title = name === 'dark' ? 'Tema claro' : 'Tema oscuro'
+}
+
+themeEl.addEventListener('change', () => setThemePref(themeEl.value as ThemePref))
+themeToggleEl.addEventListener('click', () => setThemePref(currentTheme() === 'dark' ? 'light' : 'dark'))
+onThemeChange((name) => {
+  syncThemeControls(name)
+  tiles.forEach((t) => t.setTheme(name))
+})
+syncThemeControls(currentTheme())
 
 /** So a fresh terminal has a name in the session picker instead of the generic "canvas". */
 function spawnNamed(): void {

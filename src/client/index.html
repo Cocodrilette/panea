@@ -4,6 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>terminal-canvas</title>
+    <!-- Before the stylesheet, so a light-theme load never flashes dark.
+         theme.ts owns the real logic; this only mirrors it. -->
+    <script>
+      try {
+        var p = localStorage.getItem('tcv:theme')
+        if (p !== 'light' && p !== 'dark') p = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+        document.documentElement.dataset.theme = p
+      } catch (e) {}
+    </script>
     <link rel="stylesheet" href="./main.css" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <meta name="theme-color" content="#0c0d11" />
@@ -33,6 +42,8 @@
       <button type="button" id="zoom-readout" data-act="reset" title="Zoom 100% (⌘1)">100%</button>
       <span id="status">conectando…</span>
 
+      <button type="button" id="theme-toggle" title="Cambiar tema claro / oscuro">☾</button>
+
       <div class="popover-host" id="more-menu">
         <button type="button" id="more-btn" class="popover-trigger" title="Más acciones">⋯</button>
         <div class="popover-panel popover-panel--menu" id="more-panel" hidden>
@@ -40,6 +51,11 @@
           <button data-act="discover" title="Re-escanear tmux (⌘R)">Rescan</button>
           <select id="projects" title="Arrancar un proyecto de tmuxinator">
             <option value="">tmuxinator…</option>
+          </select>
+          <select id="theme" title="Tema claro u oscuro">
+            <option value="system">Tema: sistema</option>
+            <option value="light">Tema: claro</option>
+            <option value="dark">Tema: oscuro</option>
           </select>
           <div id="views-section">
             <span class="views-label">Vistas guardadas</span>
