@@ -1,0 +1,59 @@
+/* ---------- saved views (inside the ⋯ menu) ---------- */
+
+#views-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.views-label {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+#views-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+#views-list li {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+#views-list li.views-empty {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* Beats `#more-panel button { width: 100% }`. */
+#more-panel #views-list button {
+  width: auto;
+  border-color: transparent;
+}
+
+#more-panel #views-list button:hover {
+  border-color: var(--accent);
+}
+
+#more-panel #views-list .views-go {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+#more-panel #views-list .views-icon {
+  flex: 0 0 auto;
+  padding: 4px 5px;
+  color: var(--muted);
+}

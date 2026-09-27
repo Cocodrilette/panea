@@ -6,6 +6,7 @@ import { hasFiles, imagesFrom, quotePath, uploadImage } from './images.ts'
 import { measureCell, snapSize, type Cell } from './metrics.ts'
 import { Tile } from './tile.ts'
 import { Viewport, type Rect } from './viewport.ts'
+import { Views } from './views.ts'
 
 const LOD_THRESHOLD = 0.55
 const SNAPSHOT_MS = 1500
@@ -29,6 +30,7 @@ const viewport = new Viewport(root, world)
 const tiles = new Map<string, Tile>()
 
 let layout: Layout = { tiles: {}, viewport: viewport.state, hidden: [] }
+const views = new Views(viewport, { layout: () => layout, save: () => saveLayout(), toast: (m, k) => void toast(m, k) })
 let focused: Tile | null = null
 let topZ = 1
 let socket: WebSocket | null = null
@@ -68,6 +70,7 @@ function handle(msg: ServerMessage): void {
       layout = msg.layout
       layoutWasFresh = !Object.keys(layout.tiles).length
       viewport.state = layout.viewport
+      views.render()
       fillProjects(msg.projects)
       syncTiles(msg.tiles)
       if (layoutWasFresh) packTiles()
