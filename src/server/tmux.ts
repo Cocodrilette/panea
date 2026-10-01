@@ -173,10 +173,19 @@ export async function paneGeometry(paneId: string): Promise<{ cols: number; rows
  */
 export async function capturePane(paneId: string): Promise<string> {
   try {
-    const { stdout } = await exec('tmux', ['capture-pane', '-p', '-e', '-S', `-${SCROLLBACK_LINES}`, '-t', paneId], {
-      maxBuffer: 32 * 1024 * 1024,
-    })
-    return stdout.replace(/\n/g, '\r\n')
+    const [{ stdout }, cursor] = await Promise.all([
+      exec('tmux', ['capture-pane', '-p', '-e', '-S', `-${SCROLLBACK_LINES}`, '-t', paneId], {
+        maxBuffer: 32 * 1024 * 1024,
+      }),
+      tmux(['display-message', '-p', '-t', paneId, '#{cursor_x} #{cursor_y}']),
+    ])
+    // The capture ends every row with a newline, the last one included, and
+    // includes the screen's blank rows. Writing it as is leaves the client's
+    // cursor below the bottom row: the first line scrolls off, and what the
+    // pane prints next lands at the bottom instead of where tmux's cursor is.
+    const [x, y] = cursor.trim().split(' ').map(Number)
+    const home = Number.isInteger(x) && Number.isInteger(y) ? `\x1b[${y + 1};${x + 1}H` : ''
+    return stdout.replace(/\n$/, '').replace(/\n/g, '\r\n') + home
   } catch {
     return ''
   }
