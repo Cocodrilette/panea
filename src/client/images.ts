@@ -30,7 +30,7 @@ export async function uploadImage(file: File): Promise<string> {
   })
 
   const body = (await res.json().catch(() => null)) as { path?: string; error?: string } | null
-  if (!res.ok || !body?.path) throw new Error(body?.error ?? `el servidor respondió ${res.status}`)
+  if (!res.ok || !body?.path) throw new Error(body?.error ?? `the server answered ${res.status}`)
   return body.path
 }
 

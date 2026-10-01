@@ -75,7 +75,7 @@ function connect(attempt = 0): void {
   socket = ws
 
   ws.addEventListener('open', () => {
-    statusEl.textContent = 'conectado'
+    statusEl.textContent = 'connected'
     statusEl.className = 'ok'
   })
 
@@ -84,7 +84,7 @@ function connect(attempt = 0): void {
   })
 
   ws.addEventListener('close', () => {
-    statusEl.textContent = 'reconectando…'
+    statusEl.textContent = 'reconnecting…'
     statusEl.className = 'down'
     const delay = Math.min(5000, 300 * 2 ** attempt)
     setTimeout(() => connect(attempt + 1), delay)
@@ -328,7 +328,7 @@ const KILL_GRACE_MS = 10_000
 
 function killTile(tile: Tile): void {
   const ok = confirm(
-    `¿Matar la window de tmux "${tile.spec.title}"?\n\nEsto termina sus procesos (${tile.spec.command || 'shell'}).`,
+    `Kill the tmux window "${tile.spec.title}"?\n\nThis ends its processes (${tile.spec.command || 'shell'}).`,
   )
   if (!ok) return
   sendMsg({ type: 'kill', id: tile.spec.id })
@@ -346,9 +346,9 @@ function killTile(tile: Tile): void {
  */
 function decouplePane(tile: Tile): void {
   const ok = confirm(
-    `¿Sacar "${tile.spec.title}" a su propia window de tmux?\n\n` +
-      'Su tamaño deja de estar acoplado a los otros panes de la window. El proceso sigue ' +
-      'corriendo, pero cambia el layout de tu sesión de tmux.',
+    `Move "${tile.spec.title}" to its own tmux window?\n\n` +
+      'Its size stops being coupled to the other panes in the window. The process keeps ' +
+      'running, but your tmux session\'s layout changes.',
   )
   if (!ok) return
   sendMsg({ type: 'decouple', id: tile.spec.id })
@@ -384,19 +384,19 @@ function raise(tile: Tile): void {
  */
 async function pasteImages(tile: Tile, files: File[]): Promise<void> {
   if (!files.length) {
-    toast('solo se pueden soltar imágenes', 'warn')
+    toast('only images can be dropped', 'warn')
     return
   }
 
   focus(tile)
-  const pending = toast(files.length === 1 ? 'subiendo imagen…' : `subiendo ${files.length} imágenes…`, 'info', 0)
+  const pending = toast(files.length === 1 ? 'uploading image…' : `uploading ${files.length} images…`, 'info', 0)
 
   const paths: string[] = []
   for (const file of files) {
     try {
       paths.push(await uploadImage(file))
     } catch (err) {
-      toast(`no pude subir "${file.name || 'imagen'}": ${err instanceof Error ? err.message : err}`, 'error')
+      toast(`couldn't upload "${file.name || 'image'}": ${err instanceof Error ? err.message : err}`, 'error')
     }
   }
 
@@ -405,7 +405,7 @@ async function pasteImages(tile: Tile, files: File[]): Promise<void> {
 
   // A trailing space so the next thing typed does not glue itself to the path.
   sendMsg({ type: 'input', id: tile.spec.id, data: `${paths.map(quotePath).join(' ')} ` })
-  toast(paths.length === 1 ? 'ruta pegada en la terminal' : `${paths.length} rutas pegadas en la terminal`)
+  toast(paths.length === 1 ? 'path pasted into the terminal' : `${paths.length} paths pasted into the terminal`)
 }
 
 // A file dropped anywhere else would otherwise make the browser navigate to
@@ -423,7 +423,7 @@ window.addEventListener('drop', (ev) => {
   ev.preventDefault()
   if (claimed) return
   if (!focused) {
-    toast('arrastra la imagen sobre una terminal', 'warn')
+    toast('drop the image onto a terminal', 'warn')
     return
   }
   void pasteImages(focused, imagesFrom(ev.dataTransfer))
@@ -651,7 +651,7 @@ function renderSessionList(): void {
   if (!ranked.length) {
     const empty = document.createElement('li')
     empty.className = 'session-empty'
-    empty.textContent = 'sin resultados'
+    empty.textContent = 'no results'
     sessionListEl.appendChild(empty)
     return
   }
@@ -826,7 +826,7 @@ const themeToggleEl = document.getElementById('theme-toggle') as HTMLButtonEleme
 function syncThemeControls(name: ThemeName): void {
   themeEl.value = themePref()
   themeToggleEl.textContent = name === 'dark' ? '☀' : '☾'
-  themeToggleEl.title = name === 'dark' ? 'Tema claro' : 'Tema oscuro'
+  themeToggleEl.title = name === 'dark' ? 'Light theme' : 'Dark theme'
 }
 
 themeEl.addEventListener('change', () => setThemePref(themeEl.value as ThemePref))
@@ -839,7 +839,7 @@ syncThemeControls(currentTheme())
 
 /** So a fresh terminal has a name in the session picker instead of the generic "canvas". */
 function spawnNamed(): void {
-  const name = prompt('Nombre para la terminal (opcional):')
+  const name = prompt('Name for the terminal (optional):')
   if (name === null) return
   sendMsg({ type: 'spawn', name: name.trim() || undefined })
 }

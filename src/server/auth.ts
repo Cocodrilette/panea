@@ -103,7 +103,7 @@ export function createGuard(host: string, port: number): Guard {
       if (!url.searchParams.has('token')) return false
       if (!sameSecret(url.searchParams.get('token'), token)) {
         res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' })
-        res.end('token inválido')
+        res.end('invalid token')
         return true
       }
       url.searchParams.delete('token')
@@ -124,10 +124,10 @@ export function isLoopback(host: string): boolean {
 }
 
 export const LOCKED_PAGE = `<!doctype html>
-<html lang="es"><head><meta charset="utf-8"><title>terminal-canvas</title>
+<html lang="en"><head><meta charset="utf-8"><title>terminal-canvas</title>
 <style>body{font:15px/1.5 system-ui,sans-serif;background:#0c0d11;color:#d7dae0;display:grid;place-items:center;min-height:100vh;margin:0}
 main{max-width:30rem;padding:1.5rem}code{background:#1c1e25;padding:.1em .35em;border-radius:4px}</style></head>
 <body><main><h1>terminal-canvas</h1>
-<p>Este navegador todavía no tiene acceso. Abre el enlace con <code>?token=…</code> que imprime el servidor,
-o vuelve a correr <code>npm run canvas</code>: abre la instancia que ya corre con el enlace correcto.</p>
-<p>El token vive en <code>${TOKEN_FILE.replace(homedir(), '~')}</code>.</p></main></body></html>`
+<p>This browser isn't signed in yet. Open the <code>?token=…</code> link the server prints,
+or run <code>npm run canvas</code> again: it opens the running instance with the right link.</p>
+<p>The token lives in <code>${TOKEN_FILE.replace(homedir(), '~')}</code>.</p></main></body></html>`

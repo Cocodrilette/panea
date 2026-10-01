@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
@@ -25,71 +25,71 @@
     </div>
 
     <header id="toolbar">
-      <button data-act="fit" title="Encajar todo (⌘0)">Fit</button>
+      <button data-act="fit" title="Fit everything (⌘0)">Fit</button>
 
       <div class="popover-host" id="session-picker">
-        <button type="button" id="session-picker-btn" class="popover-trigger" title="Ir a una sesión activa (⌘K)">Sesiones ▾</button>
+        <button type="button" id="session-picker-btn" class="popover-trigger" title="Jump to a running session (⌘K)">Sessions ▾</button>
         <div class="popover-panel" id="session-picker-panel" hidden>
-          <input type="text" id="session-search" placeholder="Buscar sesión…" autocomplete="off" spellcheck="false" />
+          <input type="text" id="session-search" placeholder="Search sessions…" autocomplete="off" spellcheck="false" />
           <ul id="session-list"></ul>
         </div>
       </div>
 
-      <button data-act="new" title="Terminal nueva (⌘T)">+ Terminal</button>
-      <button type="button" id="attention-btn" title="Ir a la próxima terminal que pide atención (⌘J)">⚑ 0</button>
+      <button data-act="new" title="New terminal (⌘T)">+ Terminal</button>
+      <button type="button" id="attention-btn" title="Jump to the next terminal that needs attention (⌘J)">⚑ 0</button>
       <span class="sep"></span>
 
       <button type="button" id="zoom-readout" data-act="reset" title="Zoom 100% (⌘1)">100%</button>
-      <span id="status">conectando…</span>
+      <span id="status">connecting…</span>
 
-      <button type="button" id="theme-toggle" title="Cambiar tema claro / oscuro">☾</button>
+      <button type="button" id="theme-toggle" title="Toggle light / dark theme">☾</button>
 
       <div class="popover-host" id="more-menu">
-        <button type="button" id="more-btn" class="popover-trigger" title="Más acciones">⋯</button>
+        <button type="button" id="more-btn" class="popover-trigger" title="More actions">⋯</button>
         <div class="popover-panel popover-panel--menu" id="more-panel" hidden>
-          <button data-act="grid" title="Reordenar en grilla, por grupo (⌘G)">Grilla</button>
-          <button data-act="discover" title="Re-escanear tmux (⌘R)">Rescan</button>
-          <select id="theme" title="Tema claro u oscuro">
-            <option value="system">Tema: sistema</option>
-            <option value="light">Tema: claro</option>
-            <option value="dark">Tema: oscuro</option>
+          <button data-act="grid" title="Arrange in a grid, by group (⌘G)">Grid</button>
+          <button data-act="discover" title="Rescan tmux (⌘R)">Rescan</button>
+          <select id="theme" title="Light or dark theme">
+            <option value="system">Theme: system</option>
+            <option value="light">Theme: light</option>
+            <option value="dark">Theme: dark</option>
           </select>
           <div id="views-section">
-            <span class="views-label">Vistas guardadas</span>
+            <span class="views-label">Saved views</span>
             <ul id="views-list"></ul>
-            <button type="button" id="views-add" title="Guardar la cámara actual (⌥⇧1…9)">+ Guardar vista</button>
+            <button type="button" id="views-add" title="Save the current camera (⌥⇧1…9)">+ Save view</button>
           </div>
           <div id="projects-section">
             <span class="views-label">tmuxinator</span>
-            <select id="projects" title="Arrancar un proyecto de tmuxinator y colocar sus tiles">
-              <option value="">Arrancar…</option>
+            <select id="projects" title="Start a tmuxinator project and place its tiles">
+              <option value="">Start…</option>
             </select>
-            <button type="button" id="projects-save" title="Escribir las sesiones como proyectos en ~/.config/tmuxinator, con posiciones y grupos">Guardar…</button>
-            <button type="button" id="projects-export" title="Descargar las sesiones como .yml de tmuxinator">Exportar…</button>
-            <button type="button" id="projects-import" title="Instalar .yml de tmuxinator y arrancarlos">Importar…</button>
+            <button type="button" id="projects-save" title="Write the sessions as projects in ~/.config/tmuxinator, with positions and groups">Save…</button>
+            <button type="button" id="projects-export" title="Download the sessions as tmuxinator .yml files">Export…</button>
+            <button type="button" id="projects-import" title="Install tmuxinator .yml files and start them">Import…</button>
             <input type="file" id="projects-file" accept=".yml,.yaml" multiple hidden />
           </div>
         </div>
       </div>
 
       <div class="popover-host" id="help-menu">
-        <button type="button" id="help-btn" class="popover-trigger" title="Atajos">?</button>
+        <button type="button" id="help-btn" class="popover-trigger" title="Shortcuts">?</button>
         <div class="popover-panel popover-panel--help" id="help-panel" hidden>
-          <p>arrastrar fondo o scroll → <b>pan</b></p>
-          <p>scroll sobre una terminal → <b>su scrollback</b></p>
-          <p>⌘/ctrl + scroll o pinch → <b>zoom</b></p>
-          <p>click en terminal → <b>foco</b></p>
-          <p>⌘esc o click al fondo → <b>soltar foco</b></p>
-          <p>arrastrar el nombre de un grupo → <b>mover sus tiles</b></p>
-          <p>soltar un tile en otro marco / fuera del suyo → <b>cambiarlo de grupo</b></p>
-          <p>shift + click o shift + arrastrar → <b>seleccionar y agrupar</b></p>
-          <p>doble click en un grupo → <b>renombrar</b></p>
-          <p>⌘G → <b>reempaquetar por grupo</b></p>
-          <p>⌘K, ↑↓ y enter → <b>saltar a un pane</b></p>
-          <p>⌘⌥ o ctrl+⌥ + flechas → <b>foco al tile vecino</b></p>
-          <p>⌥⇧1…9 / ⌥1…9 → <b>guardar / ir a una vista</b></p>
-          <p>⌘J → <b>ir a la terminal que pide atención</b></p>
-          <p>arrastrar o pegar una imagen → <b>su ruta en la terminal</b></p>
+          <p>drag the background or scroll → <b>pan</b></p>
+          <p>scroll over a terminal → <b>its scrollback</b></p>
+          <p>⌘/ctrl + scroll or pinch → <b>zoom</b></p>
+          <p>click a terminal → <b>focus</b></p>
+          <p>⌘esc or click the background → <b>release focus</b></p>
+          <p>drag a group's name → <b>move its tiles</b></p>
+          <p>drop a tile in another frame / outside its own → <b>change its group</b></p>
+          <p>shift + click or shift + drag → <b>select and group</b></p>
+          <p>double-click a group → <b>rename</b></p>
+          <p>⌘G → <b>repack by group</b></p>
+          <p>⌘K, ↑↓ and enter → <b>jump to a pane</b></p>
+          <p>⌘⌥ or ctrl+⌥ + arrows → <b>focus the neighboring tile</b></p>
+          <p>⌥⇧1…9 / ⌥1…9 → <b>save / go to a view</b></p>
+          <p>⌘J → <b>jump to the terminal that needs attention</b></p>
+          <p>drag or paste an image → <b>its path in the terminal</b></p>
         </div>
       </div>
     </header>

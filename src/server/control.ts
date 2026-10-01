@@ -55,7 +55,7 @@ export class ControlClient {
       this.closed = true
       // Unblock anything still waiting for a reply that will never come.
       for (const resolve of this.pending.splice(0)) resolve({ lines: [], error: true })
-      handlers.onExit(signal ? `señal ${signal}` : `código ${code ?? 0}`)
+      handlers.onExit(signal ? `signal ${signal}` : `code ${code ?? 0}`)
     })
   }
 

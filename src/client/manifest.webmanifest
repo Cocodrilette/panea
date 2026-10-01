@@ -1,7 +1,7 @@
 {
   "name": "terminal-canvas",
   "short_name": "tcv",
-  "description": "Lienzo infinito con pan/zoom donde cada pane de tmux es un tile",
+  "description": "An infinite pan/zoom canvas where every tmux pane is a tile",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

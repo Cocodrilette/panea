@@ -30,17 +30,17 @@ export type ActivityState = 'attention' | 'bell' | 'unread' | 'idle'
 const RANK: Record<ActivityState, number> = { attention: 0, bell: 1, idle: 2, unread: 3 }
 
 const LABEL: Record<ActivityState, string> = {
-  attention: 'espera respuesta',
-  bell: 'campana',
-  unread: 'salida nueva',
-  idle: 'en silencio',
+  attention: 'needs input',
+  bell: 'bell',
+  unread: 'new output',
+  idle: 'quiet',
 }
 
 const HINT: Record<ActivityState, string> = {
-  attention: 'Dejó de escribir en algo que parece una pregunta o una aprobación',
-  bell: 'Sonó la campana (BEL) desde la última vez que lo miraste',
-  unread: 'Está escribiendo salida desde la última vez que lo miraste',
-  idle: 'Tuvo salida nueva y ahora lleva un rato en silencio',
+  attention: 'Went quiet on something that looks like a question or an approval prompt',
+  bell: 'Rang the bell (BEL) since you last looked',
+  unread: 'Has been writing output since you last looked',
+  idle: 'Had new output and has been quiet for a while',
 }
 
 /**
@@ -191,7 +191,7 @@ export class Activity {
       .sort((a, b) => RANK[a.shown!] - RANK[b.shown!] || a.since - b.since)
     const target = list[0]
     if (!target) {
-      this.hooks.toast('ninguna terminal pide atención')
+      this.hooks.toast('no terminal needs attention')
       return
     }
     this.hooks.jump(target.tile)
@@ -252,10 +252,10 @@ export class Activity {
     this.button.classList.toggle('urgent', urgent > 0)
     this.button.classList.toggle('pending', !urgent && pending > 0)
     this.button.title = urgent
-      ? `${urgent} terminal(es) piden atención — ir a la siguiente (⌘J)`
+      ? `${urgent} terminal(s) need attention — jump to the next (⌘J)`
       : pending
-        ? `${pending} terminal(es) con salida nueva — ir a la siguiente (⌘J)`
-        : 'Ninguna terminal pide atención (⌘J)'
+        ? `${pending} terminal(s) with new output — jump to the next (⌘J)`
+        : 'No terminal needs attention (⌘J)'
   }
 }
 

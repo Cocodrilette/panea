@@ -119,8 +119,8 @@ export async function discoverTiles(): Promise<{ tiles: TileSpec[]; warnings: st
   const warnings = await sizeWarnings(tiles)
   if (malformed) {
     warnings.unshift(
-      `tmux devolvió ${malformed} línea(s) sin los separadores esperados, así que esos panes no se muestran. ` +
-        'Suele ser un entorno sin locale UTF-8: revisa que LANG esté definido donde corre el servidor.',
+      `tmux returned ${malformed} line(s) without the expected separators, so those panes aren't shown. ` +
+        'This is usually an environment without a UTF-8 locale: check that LANG is set where the server runs.',
     )
   }
   return { tiles, warnings }
@@ -146,7 +146,7 @@ async function sizeWarnings(tiles: TileSpec[]): Promise<string[]> {
       .filter((s): s is string => !!s && managed.has(s))
     if (!external.length) return []
     return [
-      `La sesión "${external[0]}" tiene otra terminal attachada. El canvas fija el tamaño de las windows que muestra, así que ese cliente las verá recortadas en su propio viewport.`,
+      `Session "${external[0]}" has another terminal attached. The canvas sets the size of the windows it shows, so that client will see them cropped to its own viewport.`,
     ]
   } catch {
     return []

@@ -51,27 +51,27 @@ function bootoutAndWait() {
   launchctl(['bootout', TARGET], { fatal: false })
   const deadline = Date.now() + 10_000
   while (loaded() && Date.now() < deadline) execFileSync('sleep', ['0.2'])
-  if (loaded()) throw new Error(`launchd no soltó ${LABEL}; prueba \`launchctl bootout ${TARGET}\` a mano`)
+  if (loaded()) throw new Error(`launchd didn't release ${LABEL}; try \`launchctl bootout ${TARGET}\` by hand`)
 }
 
 if (process.argv.includes('--status')) {
   if (!existsSync(PLIST)) {
-    console.log('[tcv] sin LaunchAgent instalado')
+    console.log('[tcv] no LaunchAgent installed')
     process.exit(0)
   }
-  console.log(launchctl(['print', TARGET], { fatal: false }) || `[tcv] ${LABEL} no está cargado`)
+  console.log(launchctl(['print', TARGET], { fatal: false }) || `[tcv] ${LABEL} is not loaded`)
   process.exit(0)
 }
 
 if (process.argv.includes('--off')) {
   bootoutAndWait()
   rmSync(PLIST, { force: true })
-  console.log(`[tcv] LaunchAgent desinstalado (${PLIST})`)
+  console.log(`[tcv] LaunchAgent uninstalled (${PLIST})`)
   process.exit(0)
 }
 
 if (!existsSync(join(ROOT, 'dist/main.js'))) {
-  console.error('[tcv] falta dist/main.js — corre `npm run build` antes de instalar el agente')
+  console.error('[tcv] dist/main.js is missing — run `npm run build` before installing the agent')
   process.exit(1)
 }
 
@@ -114,5 +114,5 @@ mkdirSync(dirname(PLIST), { recursive: true })
 writeFileSync(PLIST, plist)
 bootoutAndWait()
 launchctl(['bootstrap', `gui/${process.getuid()}`, PLIST])
-console.log(`[tcv] LaunchAgent instalado: ${PLIST}`)
-console.log(`[tcv] logs en ${LOG} — quitar con \`npm run autostart:off\``)
+console.log(`[tcv] LaunchAgent installed: ${PLIST}`)
+console.log(`[tcv] logs in ${LOG} — remove with \`npm run autostart:off\``)

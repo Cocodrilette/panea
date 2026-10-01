@@ -79,7 +79,7 @@ try {
     stdio: ['ignore', 'pipe', 'inherit'],
   })
   await new Promise((resolve, reject) => {
-    server.stdout.on('data', (d) => String(d).includes('terminal-canvas en') && resolve())
+    server.stdout.on('data', (d) => String(d).includes('terminal-canvas on') && resolve())
     server.on('exit', (c) => reject(new Error(`server exited (${c})`)))
   })
 

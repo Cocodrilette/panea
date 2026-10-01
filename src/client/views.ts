@@ -53,13 +53,13 @@ export class Views {
     layout.views = [...this.list.filter((v) => v.slot !== slot), view].sort((a, b) => a.slot - b.slot)
     this.host.save()
     this.render()
-    this.host.toast(`vista ${slot}${view.name ? ` · ${view.name}` : ''} guardada`)
+    this.host.toast(`view ${slot}${view.name ? ` · ${view.name}` : ''} saved`)
   }
 
   recall(slot: number): void {
     const view = this.list.find((v) => v.slot === slot)
     if (!view) {
-      this.host.toast(`no hay vista en ${slot} — guárdala con ⌥⇧${slot}`, 'warn')
+      this.host.toast(`no view in ${slot} — save one with ⌥⇧${slot}`, 'warn')
       return
     }
     flyTo(this.viewport, { x: view.x, y: view.y, zoom: view.zoom }, RECALL_MS)
@@ -77,16 +77,16 @@ export class Views {
     const taken = new Set(this.list.map((v) => v.slot))
     const slot = Array.from({ length: SLOTS }, (_, i) => i + 1).find((n) => !taken.has(n))
     if (!slot) {
-      this.host.toast('los 9 slots están ocupados: borra una vista o sobrescríbela con ⌥⇧1…9', 'warn')
+      this.host.toast('all 9 slots are taken: delete a view or overwrite one with ⌥⇧1…9', 'warn')
       return
     }
-    const name = prompt(`Nombre para la vista ${slot} (opcional):`)
+    const name = prompt(`Name for view ${slot} (optional):`)
     if (name === null) return
     this.saveSlot(slot, name.trim() || undefined)
   }
 
   private rename(view: SavedView): void {
-    const name = prompt(`Nombre para la vista ${view.slot}:`, view.name ?? '')
+    const name = prompt(`Name for view ${view.slot}:`, view.name ?? '')
     if (name === null) return
     if (name.trim()) view.name = name.trim()
     else delete view.name
@@ -99,7 +99,7 @@ export class Views {
     if (!this.list.length) {
       const empty = document.createElement('li')
       empty.className = 'views-empty'
-      empty.textContent = 'sin vistas — ⌥⇧1…9 guarda'
+      empty.textContent = 'no views — ⌥⇧1…9 saves one'
       this.listEl.appendChild(empty)
       return
     }
@@ -110,19 +110,19 @@ export class Views {
 
       const go = document.createElement('button')
       go.className = 'views-go'
-      go.title = `Ir a la vista (⌥${view.slot})`
+      go.title = `Go to view (⌥${view.slot})`
       go.textContent = `${view.slot} · ${view.name ?? `${Math.round(view.zoom * 100)}%`}`
       go.addEventListener('click', () => this.recall(view.slot))
 
       const edit = document.createElement('button')
       edit.className = 'views-icon'
-      edit.title = 'Renombrar'
+      edit.title = 'Rename'
       edit.textContent = '✎'
       edit.addEventListener('click', () => this.rename(view))
 
       const del = document.createElement('button')
       del.className = 'views-icon'
-      del.title = 'Borrar vista'
+      del.title = 'Delete view'
       del.textContent = '✕'
       del.addEventListener('click', () => this.remove(view.slot))
 

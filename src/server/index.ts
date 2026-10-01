@@ -78,7 +78,7 @@ const MIME: Record<string, string> = {
   '.webmanifest': 'application/manifest+json',
 }
 
-const tooBig = (limit: number) => new Error(`la imagen supera el límite de ${Math.round(limit / 1024 / 1024)} MB`)
+const tooBig = (limit: number) => new Error(`the image is over the ${Math.round(limit / 1024 / 1024)} MB limit`)
 
 /** Buffer a request body, refusing anything past `limit` instead of buffering it. */
 function readBody(req: IncomingMessage, limit: number): Promise<Buffer> {
@@ -116,7 +116,7 @@ async function handleUpload(req: IncomingMessage, res: ServerResponse): Promise<
 
   const mime = String(req.headers['content-type'] ?? '')
   if (!isSupportedImage(mime)) {
-    reject(415, `tipo de imagen no soportado: ${mime || 'desconocido'}`)
+    reject(415, `unsupported image type: ${mime || 'unknown'}`)
     return
   }
 
@@ -130,7 +130,7 @@ async function handleUpload(req: IncomingMessage, res: ServerResponse): Promise<
   try {
     const data = await readBody(req, MAX_UPLOAD_BYTES)
     if (!data.length) {
-      reject(400, 'la imagen llegó vacía')
+      reject(400, 'the image arrived empty')
       return
     }
     const name = decodeURIComponent(String(req.headers['x-filename'] ?? ''))
@@ -150,7 +150,7 @@ const http = createServer(async (req, res) => {
   // Any page in the browser can make requests here: only ones addressed to
   // this server, from the canvas itself, get past this line. See auth.ts.
   if (!guard.sameSite(req)) {
-    deny(res, 403, 'origen no permitido')
+    deny(res, 403, 'origin not allowed')
     return
   }
   if (guard.acceptLogin(req, res)) return
@@ -159,13 +159,13 @@ const http = createServer(async (req, res) => {
   try {
     path = decodeURIComponent((req.url ?? '/').split('?')[0])
   } catch {
-    deny(res, 400, 'ruta mal codificada')
+    deny(res, 400, 'malformed path')
     return
   }
 
   if (req.method === 'POST' && path === '/upload') {
     if (!guard.signedIn(req)) {
-      deny(res, 401, 'sin sesión: abre el enlace que imprime el servidor')
+      deny(res, 401, 'not signed in: open the link the server prints')
       return
     }
     await handleUpload(req, res)
@@ -190,7 +190,7 @@ const http = createServer(async (req, res) => {
     res.end(body)
   } catch {
     res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' })
-    res.end('not found — ¿corriste `npm run build`?')
+    res.end('not found — did you run `npm run build`?')
   }
 })
 
@@ -249,7 +249,7 @@ function controlFor(session: string): ControlClient {
       // The session is gone (or tmux is): every tile on it is over.
       for (const route of [...routes.values()]) {
         if (route.spec.session !== session) continue
-        console.log(`[tcv] la sesión "${session}" terminó (${reason}): cierro el tile ${route.spec.id}`)
+        console.log(`[tcv] session "${session}" ended (${reason}): closing tile ${route.spec.id}`)
         dropRoute(route.spec.id)
         broadcast({ type: 'exit', id: route.spec.id })
       }
@@ -285,7 +285,7 @@ async function openTile(ws: WebSocket, id: string, cols: number, rows: number): 
   if (!spec) {
     // Nothing worth bothering the user with: the browser is asking about a
     // pane that died between the tile list it read and this request.
-    console.log(`[tcv] open de un pane que ya no existe: ${id}`)
+    console.log(`[tcv] open for a pane that no longer exists: ${id}`)
     return
   }
 
@@ -350,7 +350,7 @@ async function launchProject(name: string): Promise<void> {
     project = readProject(name)
   } catch (err) {
     // Unreadable here (ERB, say) is no reason not to start it: tmuxinator may cope.
-    console.log(`[tcv] no pude leer el proyecto ${name}: ${err instanceof Error ? err.message : err}`)
+    console.log(`[tcv] couldn't read project ${name}: ${err instanceof Error ? err.message : err}`)
   }
   const fresh = project ? !(await liveSessions()).has(project.session) : false
   if (project?.canvas) broadcast({ type: 'canvas', session: project.session, canvas: project.canvas })
@@ -421,7 +421,7 @@ wss.on('connection', async (ws) => {
           const spec = routes.get(msg.id)?.spec ?? (await specFor(msg.id))
           if (!spec) break
           if (!(await decouplePane(spec))) {
-            send(ws, { type: 'error', message: 'Este pane ya es el único de su window.' })
+            send(ws, { type: 'error', message: 'This pane is already the only one in its window.' })
             break
           }
           // Its id changes with its new window, so the old route is stale.
@@ -489,11 +489,11 @@ wss.on('connection', async (ws) => {
 
 if (!(await serverRunning())) {
   console.error(
-    '[tcv] no hay un servidor tmux corriendo. Arranca algo (p.ej. `tmuxinator start unergy --no-attach`) y vuelve a intentar.',
+    '[tcv] no tmux server is running. Start something (e.g. `tmuxinator start myproject --no-attach`) and try again.',
   )
 } else {
   const pruned = await pruneLegacyViews()
-  if (pruned) console.log(`[tcv] limpié ${pruned} sesión(es) del diseño anterior`)
+  if (pruned) console.log(`[tcv] cleaned up ${pruned} session(s) left by the previous design`)
 }
 
 const URL_SELF = `http://${HOST}:${PORT}`
@@ -505,10 +505,10 @@ function openInBrowser(): void {
 
 /** The sign-in link is a secret: show it to a person, not to a log file others may read. */
 function announce(): void {
-  console.log(`[tcv] terminal-canvas en ${URL_SELF}`)
-  if (process.stdout.isTTY) console.log(`[tcv] abre ${guard.loginUrl}`)
+  console.log(`[tcv] terminal-canvas on ${URL_SELF}`)
+  if (process.stdout.isTTY) console.log(`[tcv] open ${guard.loginUrl}`)
   if (!isLoopback(HOST)) {
-    console.warn(`[tcv] escuchando en ${HOST}: cualquiera en la red con el token controla tus terminales, y el tráfico va sin cifrar`)
+    console.warn(`[tcv] listening on ${HOST}: anyone on the network with the token controls your terminals, and traffic is unencrypted`)
   }
 }
 
@@ -523,7 +523,7 @@ http.on('error', (err: NodeJS.ErrnoException) => {
   // llega de segundas no debería morir ruidosamente: en primer plano basta
   // con mandar al usuario al servidor que ya existe.
   if (!process.env.TCV_WAIT_PORT) {
-    console.log(`[tcv] ya hay un terminal-canvas en ${URL_SELF} — abro ese`)
+    console.log(`[tcv] terminal-canvas is already running on ${URL_SELF} — opening that one`)
     openInBrowser()
     process.exit(0)
   }
@@ -532,7 +532,7 @@ http.on('error', (err: NodeJS.ErrnoException) => {
   // nos reinicie en bucle, y el puerto se libera en cuanto el otro termina.
   if (!waitingForPort) {
     waitingForPort = true
-    console.log(`[tcv] ${PORT} ocupado — espero a que se libere`)
+    console.log(`[tcv] port ${PORT} is busy — waiting for it to free up`)
   }
   // Sin unref: mientras esperamos, este timer es lo único que sostiene el
   // proceso — un listen fallido no deja handles abiertos.

@@ -229,7 +229,7 @@ function sizeSpans(box: Rect, others: Rect[], cell: Cell): Span[] {
   for (const a of ['x', 'y'] as const) {
     const matches = others.filter((o) => Math.abs(size(o, a) - size(box, a)) < SAME)
     if (!matches.length) continue
-    const label = a === 'x' ? `${colsFor(box.w, cell)} cols` : `${rowsFor(box.h, cell)} filas`
+    const label = a === 'x' ? `${colsFor(box.w, cell)} cols` : `${rowsFor(box.h, cell)} rows`
     for (const r of [box, ...matches]) {
       spans.push({ axis: a, from: start(r, a), to: end(r, a), cross: start(r, cross(a)), label, kind: 'size' })
     }

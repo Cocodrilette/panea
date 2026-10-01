@@ -6,9 +6,6 @@ where `Ctrl+b s` and hunting for the right pane becomes the bottleneck.
 
 ![terminal-canvas app screenshot](assets/image.png)
 
-> The interface is currently in Spanish. Labels quoted below are shown as they
-> appear in the app, with a translation.
-
 ## Requirements
 
 - [tmux](https://github.com/tmux/tmux), with a server running
@@ -62,7 +59,7 @@ window to decouple its size, `✕` remove from the canvas (the process keeps
 running), `⌫` kill the pane and its processes.
 
 **Saved views** are camera bookmarks. The `⋯` menu lists them so you can jump
-to one, rename it or delete it, and *+ Guardar vista* ("save view") asks for a
+to one, rename it or delete it, and *+ Save view* asks for a
 name and takes the first free slot. The shortcut isn't ⌘⇧digit because macOS
 grabs ⌘⇧3/4/5 (screenshots) before the browser sees them, and ⌘/ctrl+digit
 already belong to the canvas and to Chrome. ⌥digit works even while a terminal
@@ -101,7 +98,7 @@ The *tmuxinator* section of the `⋯` menu saves the canvas as tmuxinator
 projects, so a terminal setup can be versioned, moved to another machine, or
 started from scratch:
 
-- **Guardar…** ("save") writes each session to
+- **Save…** writes each session to
   `~/.config/tmuxinator/<project>.yml`. If the project already exists, only its
   `canvas:` block is rewritten, so hand-written commands and comments are left
   alone. Otherwise the file is generated from tmux: windows, exact `layout`,
@@ -109,10 +106,10 @@ started from scratch:
   recovers `python manage.py runserver`, not whatever ran before it on the same
   line (`av && …`), so review it. Several sessions with the same project name
   are merged into one (useful for terminals created from the canvas).
-- **Exportar…** ("export") does the same but downloads the `.yml` files.
-- **Importar…** ("import") installs `.yml` files into the tmuxinator directory
+- **Export…** does the same but downloads the `.yml` files.
+- **Import…** installs `.yml` files into the tmuxinator directory
   and starts them.
-- **Arrancar…** ("start") launches an installed project. In all three cases
+- **Start…** launches an installed project. In all three cases
   the tiles land where the `canvas:` block says; if the session was already
   running, they only move.
 
@@ -191,8 +188,8 @@ none of your sessions, layout or token are touched, and writes
   alone in its window gets exactly the size you ask for. Panes that share a
   window split one rectangle, so there the tile asks, the server applies what
   tmux allows, and replies with the **real** geometry. The tile adapts to that
-  reply instead of showing a size it doesn't have. The *tamaño acoplado*
-  ("coupled size") badge marks those panes, and `⧉` is the way out: it moves
+  reply instead of showing a size it doesn't have. The *coupled size*
+  badge marks those panes, and `⧉` is the way out: it moves
   the pane to its own window.
 - **Opening doesn't reshuffle; dragging does.** When opening, a tile can only
   *grow* its window. Otherwise three tiles from the same window would take
@@ -230,9 +227,8 @@ none of your sessions, layout or token are touched, and writes
   zooming out smooth with a dozen terminals spewing logs.
 - **Activity and attention.** An unfocused tile gets a colored border and a
   label in its bar (and a large one over the snapshot when zoomed out):
-  *salida nueva* ("new output") while it's writing, *en silencio* ("quiet")
-  once it stops, *campana* ("bell") if it rang a BEL, and *espera respuesta*
-  ("waiting for input") if it went quiet on something that looks like a
+  *new output* while it's writing, *quiet* once it stops, *bell* if it rang a
+  BEL, and *needs input* if it went quiet on something that looks like a
   question: Claude Code's approval dialog, a `[y/N]`, a `Password:`. The
   heuristic is narrow on purpose, because a false alarm teaches you to ignore
   it. Everything happens in the client, reading xterm's buffer; neither the

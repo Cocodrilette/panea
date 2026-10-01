@@ -92,11 +92,11 @@ export class Tile {
 
     head.append(this.titleEl, this.subEl, this.badgeEl)
     head.append(
-      this.button('⊕', 'Duplicar: otra terminal en esta misma ruta, al lado', () => handlers.onDuplicate(this)),
-      this.button('⤢', 'Zoom a esta terminal', () => handlers.onZoomTo(this)),
-      this.button('⧉', 'Sacar este pane a su propia window para desacoplar su tamaño', () => handlers.onDecouple(this), 'decouple'),
-      this.button('✕', 'Quitar del canvas (los procesos siguen vivos)', () => handlers.onClose(this)),
-      this.button('⌫', 'Matar la window de tmux y sus procesos', () => handlers.onKill(this), 'danger'),
+      this.button('⊕', 'Duplicate: another terminal in this same directory, next to it', () => handlers.onDuplicate(this)),
+      this.button('⤢', 'Zoom to this terminal', () => handlers.onZoomTo(this)),
+      this.button('⧉', 'Move this pane to its own window to decouple its size', () => handlers.onDecouple(this), 'decouple'),
+      this.button('✕', 'Remove from the canvas (processes keep running)', () => handlers.onClose(this)),
+      this.button('⌫', 'Kill the tmux window and its processes', () => handlers.onKill(this), 'danger'),
     )
 
     this.body = document.createElement('div')
@@ -107,7 +107,7 @@ export class Tile {
 
     this.dropEl = document.createElement('div')
     this.dropEl.className = 'tile-drop'
-    this.dropEl.textContent = 'Soltar imagen para pegar su ruta'
+    this.dropEl.textContent = 'Drop an image to paste its path'
     this.dropEl.hidden = true
 
     this.body.append(this.snapshotEl, this.dropEl)
@@ -183,8 +183,8 @@ export class Tile {
     // A pane sharing its window cannot be sized on its own: its siblings
     // tile inside the same rectangle.
     this.badgeEl.hidden = spec.siblings <= 1
-    this.badgeEl.textContent = 'tamaño acoplado'
-    this.badgeEl.title = `Comparte la window con ${spec.siblings - 1} pane(s): redimensionarlo mueve la división. Usa ⧉ para desacoplarlo.`
+    this.badgeEl.textContent = 'coupled size'
+    this.badgeEl.title = `Shares its window with ${spec.siblings - 1} pane(s): resizing it moves the split. Use ⧉ to decouple it.`
     const decouple = this.el.querySelector<HTMLButtonElement>('button.decouple')
     if (decouple) decouple.hidden = spec.siblings <= 1
   }
@@ -250,7 +250,7 @@ export class Tile {
   markDead(): void {
     this.dead = true
     this.el.classList.add('dead')
-    this.term.write('\r\n\x1b[2m[terminal-canvas] la sesión terminó\x1b[0m\r\n')
+    this.term.write('\r\n\x1b[2m[terminal-canvas] the session ended\x1b[0m\r\n')
   }
 
   /**

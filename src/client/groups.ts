@@ -145,7 +145,7 @@ export class Groups {
   }
 
   private nameOf(gid: string): string {
-    return this.def(gid)?.name ?? (gid.startsWith('s:') ? gid.slice(2) : 'grupo')
+    return this.def(gid)?.name ?? (gid.startsWith('s:') ? gid.slice(2) : 'group')
   }
 
   private hueFor(gid: string): number {
@@ -169,9 +169,9 @@ export class Groups {
     const defs = (layout.groups ??= {})
     const taken = new Set([...this.frames.keys()].map((g) => this.nameOf(g)))
     let n = 1
-    while (taken.has(`grupo ${n}`)) n++
+    while (taken.has(`group ${n}`)) n++
     const gid = `g:${Date.now().toString(36)}`
-    defs[gid] = { name: `grupo ${n}`, hue: HUES[Object.keys(defs).length % HUES.length] }
+    defs[gid] = { name: `group ${n}`, hue: HUES[Object.keys(defs).length % HUES.length] }
     this.assign(list, gid)
     return gid
   }
@@ -275,7 +275,7 @@ export class Groups {
 
     const head = document.createElement('div')
     head.className = 'group-head'
-    head.title = 'Arrastrar para mover el grupo · doble click para renombrar'
+    head.title = 'Drag to move the group · double-click to rename'
     const label = document.createElement('span')
     label.className = 'group-label'
     const count = document.createElement('span')
@@ -283,7 +283,7 @@ export class Groups {
     const more = document.createElement('button')
     more.type = 'button'
     more.className = 'group-more'
-    more.title = 'Editar grupo'
+    more.title = 'Edit group'
     more.textContent = '⋯'
     more.addEventListener('pointerdown', (e) => e.stopPropagation())
     more.addEventListener('click', (e) => {
@@ -317,7 +317,7 @@ export class Groups {
       chip = document.createElement('button')
       chip.type = 'button'
       chip.className = 'tile-group'
-      chip.title = 'Cambiar de grupo'
+      chip.title = 'Change group'
       chip.addEventListener('pointerdown', (e) => e.stopPropagation())
       chip.addEventListener('click', (e) => {
         e.stopPropagation()
@@ -328,7 +328,7 @@ export class Groups {
       tile.el.querySelector('.tile-head button')?.before(chip)
     }
     const gid = this.groupOf(tile)
-    chip.textContent = gid ? this.nameOf(gid) : 'sin grupo'
+    chip.textContent = gid ? this.nameOf(gid) : 'no group'
     chip.classList.toggle('none', !gid)
     if (gid) chip.style.setProperty('--group-hue', String(this.hueFor(gid)))
   }
@@ -405,7 +405,7 @@ export class Groups {
     }
     if (intent) {
       this.hint.textContent =
-        intent.kind === 'join' ? `soltar para mover a «${this.nameOf(intent.gid)}»` : `soltar para sacarlo de «${this.nameOf(intent.gid)}»`
+        intent.kind === 'join' ? `drop to move to “${this.nameOf(intent.gid)}”` : `drop to take it out of “${this.nameOf(intent.gid)}”`
       this.hint.style.left = `${sx + 14}px`
       this.hint.style.top = `${sy + 18}px`
     }
@@ -546,10 +546,10 @@ export class Groups {
     bar.hidden = true
     bar.innerHTML = `
       <span class="group-bar-count"></span>
-      <button type="button" data-act="group">Agrupar</button>
-      <button type="button" data-act="move">Mover a ▾</button>
-      <button type="button" data-act="ungroup">Sacar del grupo</button>
-      <button type="button" data-act="clear" title="Deseleccionar (esc)">✕</button>`
+      <button type="button" data-act="group">Group</button>
+      <button type="button" data-act="move">Move to ▾</button>
+      <button type="button" data-act="ungroup">Remove from group</button>
+      <button type="button" data-act="clear" title="Clear selection (esc)">✕</button>`
     bar.addEventListener('click', (ev) => {
       const btn = (ev.target as HTMLElement).closest('button')
       const list = [...this.selected]
@@ -597,16 +597,16 @@ export class Groups {
       })
     }
     menu.append(separator())
-    this.menuItem(menu, '+ Grupo nuevo…', () => {
+    this.menuItem(menu, '+ New group…', () => {
       const gid = this.createGroup(list)
       this.clearSelection()
       this.rename(gid)
     })
-    this.menuItem(menu, 'Sin grupo', () => this.assign(list, ''), { checked: current.size === 1 && current.has('') })
+    this.menuItem(menu, 'No group', () => this.assign(list, ''), { checked: current.size === 1 && current.has('') })
     // Each tile back where tmux put it.
     const home = list.some((t) => this.groupOf(t) !== `s:${t.spec.session}`)
     if (home) {
-      this.menuItem(menu, 'Volver a su sesión de tmux', () => {
+      this.menuItem(menu, 'Back to its tmux session', () => {
         const map = this.host.layout().groupOf ?? {}
         for (const t of list) delete map[t.spec.id]
         this.pruneEmpty()
@@ -617,7 +617,7 @@ export class Groups {
 
   private openGroupMenu(gid: string, x: number, y: number): void {
     const menu = this.openMenu(x, y)
-    this.menuItem(menu, 'Renombrar', () => this.rename(gid))
+    this.menuItem(menu, 'Rename', () => this.rename(gid))
 
     const swatches = document.createElement('div')
     swatches.className = 'group-swatches'
@@ -626,7 +626,7 @@ export class Groups {
       s.type = 'button'
       s.style.setProperty('--group-hue', String(hue))
       s.classList.toggle('on', this.hueFor(gid) === hue)
-      s.title = 'Color del grupo'
+      s.title = 'Group color'
       s.addEventListener('click', () => {
         this.closeMenu()
         this.setDef(gid, { hue })
@@ -635,13 +635,13 @@ export class Groups {
     }
     menu.append(swatches)
 
-    this.menuItem(menu, 'Seleccionar sus tiles', () => {
+    this.menuItem(menu, 'Select its tiles', () => {
       this.clearSelection()
       for (const t of this.frames.get(gid)?.members ?? []) this.setSelected(t, true)
       this.renderBar()
     })
     menu.append(separator())
-    this.menuItem(menu, 'Disolver grupo', () => this.dissolve(gid), { danger: true })
+    this.menuItem(menu, 'Dissolve group', () => this.dissolve(gid), { danger: true })
   }
 
   private openMenu(x: number, y: number, above = false): HTMLDivElement {

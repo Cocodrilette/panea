@@ -46,7 +46,7 @@ export class Projects {
       const name = this.select.value
       this.select.value = ''
       if (!name) return
-      host.toast(`arrancando ${name}…`)
+      host.toast(`starting ${name}…`)
       host.send({ type: 'start-project', name })
     })
     const on = (id: string, fn: () => void) =>
@@ -76,7 +76,7 @@ export class Projects {
         return true
       case 'imported':
         this.settle()
-        this.host.toast(`importado y arrancado: ${msg.names.join(', ')}`)
+        this.host.toast(`imported and started: ${msg.names.join(', ')}`)
         return true
       case 'project-conflict':
         this.conflict(msg.names)
@@ -95,7 +95,7 @@ export class Projects {
     this.select.textContent = ''
     const head = document.createElement('option')
     head.value = ''
-    head.textContent = 'Arrancar…'
+    head.textContent = 'Start…'
     this.select.append(head)
     for (const name of projects) {
       const opt = document.createElement('option')
@@ -115,19 +115,19 @@ export class Projects {
   private open(target: 'disk' | 'download'): void {
     const sessions = this.host.sessions()
     if (!sessions.length) {
-      this.host.toast('no hay sesiones en el canvas', 'warn')
+      this.host.toast('there are no sessions on the canvas', 'warn')
       return
     }
 
     const d = this.dialog
     d.textContent = ''
     const title = document.createElement('h2')
-    title.textContent = target === 'disk' ? 'Guardar en tmuxinator' : 'Exportar proyectos'
+    title.textContent = target === 'disk' ? 'Save to tmuxinator' : 'Export projects'
     const intro = document.createElement('p')
     intro.className = 'projects-intro'
     intro.textContent =
-      'Cada sesión se escribe como un proyecto de tmuxinator, con sus posiciones y grupos en la clave canvas. ' +
-      'Si el proyecto ya existe, sólo se actualiza ese bloque. Sesiones con el mismo nombre se juntan en un proyecto.'
+      'Each session is written as a tmuxinator project, with its positions and groups under the canvas key. ' +
+      'If the project already exists, only that block is updated. Sessions with the same name are merged into one project.'
 
     const list = document.createElement('div')
     list.className = 'projects-list'
@@ -143,16 +143,16 @@ export class Projects {
         r.note.textContent = !r.check.checked
           ? ''
           : !valid
-            ? 'nombre inválido'
+            ? 'invalid name'
             : (counts.get(name) ?? 0) > 1
               ? this.known.includes(name)
-                ? 'junta · reemplaza'
-                : 'se junta'
+                ? 'merges · replaces'
+                : 'merges'
               : this.known.includes(name)
                 ? name === r.session
-                  ? 'actualiza'
-                  : 'reemplaza'
-                : 'nuevo'
+                  ? 'updates'
+                  : 'replaces'
+                : 'new'
       }
       submit.disabled = !rows.some((r) => r.check.checked) || rows.some((r) => r.check.checked && !NAME.test(r.name.value.trim()))
     }
@@ -184,12 +184,12 @@ export class Projects {
     actions.className = 'projects-actions'
     const cancel = document.createElement('button')
     cancel.type = 'button'
-    cancel.textContent = 'Cancelar'
+    cancel.textContent = 'Cancel'
     cancel.addEventListener('click', () => d.close())
     const submit = document.createElement('button')
     submit.type = 'button'
     submit.className = 'primary'
-    submit.textContent = target === 'disk' ? 'Guardar' : 'Descargar'
+    submit.textContent = target === 'disk' ? 'Save' : 'Download'
     submit.addEventListener('click', () => {
       const map: Record<string, string> = {}
       for (const r of rows) if (r.check.checked) map[r.session] = r.name.value.trim()
@@ -208,7 +208,7 @@ export class Projects {
     if (!files.length) return
     const names = files.map((f) => `${f.name}.yml`).join(', ')
     if (target === 'disk') {
-      this.host.toast(`guardado en tmuxinator: ${names}`)
+      this.host.toast(`saved to tmuxinator: ${names}`)
       return
     }
     for (const f of files) {
@@ -219,7 +219,7 @@ export class Projects {
       a.click()
       setTimeout(() => URL.revokeObjectURL(url), 10_000)
     }
-    this.host.toast(`descargado: ${names}`)
+    this.host.toast(`downloaded: ${names}`)
   }
 
   /* --------------------------------- import -------------------------------- */
@@ -229,7 +229,7 @@ export class Projects {
     this.file.value = ''
     if (!files.length) return
     const read = await Promise.all(files.map(async (f) => ({ name: f.name, text: await f.text() })))
-    this.host.toast(read.length === 1 ? `importando ${read[0].name}…` : `importando ${read.length} proyectos…`)
+    this.host.toast(read.length === 1 ? `importing ${read[0].name}…` : `importing ${read.length} projects…`)
     this.request({ type: 'import-projects', files: read })
   }
 
@@ -245,7 +245,7 @@ export class Projects {
       if (this.pending !== msg) return
       this.pending = null
       this.host.toast(
-        'el servidor no respondió. Si lo actualizaste hace poco, reinícialo (npm run autostart o npm start).',
+        'the server didn\'t answer. If you updated it recently, restart it (npm run autostart or npm start).',
         'error',
       )
     }, 20_000) as unknown as number
@@ -264,8 +264,8 @@ export class Projects {
     if (!msg) return
     const list = names.map((n) => `${n}.yml`).join(', ')
     const ok = confirm(
-      `Ya existe ${list} en tmuxinator.\n\n¿Reemplazarlo${names.length > 1 ? 's' : ''}? ` +
-        'Se pierde lo que tenga escrito a mano (comandos, comentarios).',
+      `${list} already exist${names.length > 1 ? '' : 's'} in tmuxinator.\n\nReplace ${names.length > 1 ? 'them' : 'it'}? ` +
+        'Anything written by hand (commands, comments) is lost.',
     )
     if (!ok) return
     this.request({ ...msg, overwrite: [...(msg.overwrite ?? []), ...names] })

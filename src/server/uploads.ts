@@ -44,7 +44,7 @@ export function isSupportedImage(mime: string): boolean {
 export function saveImage(data: Buffer, mime: string, originalName?: string): string {
   const type = mime.split(';')[0].trim().toLowerCase()
   const ext = EXT_BY_MIME[type]
-  if (!ext) throw new Error(`tipo de imagen no soportado: ${mime}`)
+  if (!ext) throw new Error(`unsupported image type: ${mime}`)
 
   mkdirSync(IMAGE_DIR, { recursive: true })
   pruneOldImages()
