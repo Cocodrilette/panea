@@ -168,6 +168,11 @@ window still opens, just without tiles.
 Icons are regenerated with `npm run icons`, which draws an SVG with
 Playwright's Chromium and writes `assets/icons/*.png` (these are committed).
 
+The README screenshot is regenerated with `npm run build && npm run screenshot`.
+It stages a fictional demo against its own tmux server and a throwaway HOME, so
+none of your sessions, layout or token are touched, and writes
+`assets/image.png`.
+
 ## How it works
 
 - **One tile = one pane, via control mode.** The server opens one
