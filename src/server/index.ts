@@ -44,11 +44,13 @@ import {
   type ProjectInfo,
 } from './tmuxinator.ts'
 import { MAX_UPLOAD_BYTES, isSupportedImage, saveImage } from './uploads.ts'
+import { LOCKED_PAGE, createGuard, isLoopback } from './auth.ts'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const DIST = join(ROOT, 'dist')
 const PORT = Number(process.env.TCV_PORT ?? process.argv[2] ?? 7788)
 const HOST = process.env.TCV_HOST ?? '127.0.0.1'
+const guard = createGuard(HOST, PORT)
 
 /** An open tile: a pane routed to the browsers watching it. */
 interface Route {
@@ -139,12 +141,46 @@ async function handleUpload(req: IncomingMessage, res: ServerResponse): Promise<
   }
 }
 
+function deny(res: ServerResponse, code: number, message: string): void {
+  res.writeHead(code, { 'content-type': 'text/plain; charset=utf-8', connection: 'close' })
+  res.end(message)
+}
+
 const http = createServer(async (req, res) => {
-  const path = decodeURIComponent((req.url ?? '/').split('?')[0])
+  // Any page in the browser can make requests here: only ones addressed to
+  // this server, from the canvas itself, get past this line. See auth.ts.
+  if (!guard.sameSite(req)) {
+    deny(res, 403, 'origen no permitido')
+    return
+  }
+  if (guard.acceptLogin(req, res)) return
+
+  let path: string
+  try {
+    path = decodeURIComponent((req.url ?? '/').split('?')[0])
+  } catch {
+    deny(res, 400, 'ruta mal codificada')
+    return
+  }
 
   if (req.method === 'POST' && path === '/upload') {
+    if (!guard.signedIn(req)) {
+      deny(res, 401, 'sin sesión: abre el enlace que imprime el servidor')
+      return
+    }
     await handleUpload(req, res)
     return
+  }
+
+  // The bundle and icons hold nothing private (and Chrome fetches the
+  // manifest without cookies), but the canvas itself waits for a sign-in.
+  if (path === '/' || path === '/index.html') {
+    if (!guard.signedIn(req)) {
+      res.writeHead(401, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' })
+      res.end(LOCKED_PAGE)
+      return
+    }
+    guard.refresh(res)
   }
 
   const rel = path === '/' ? 'index.html' : normalize(path).replace(/^(\.\.[/\\])+/, '').replace(/^[/\\]+/, '')
@@ -158,7 +194,17 @@ const http = createServer(async (req, res) => {
   }
 })
 
-const wss = new WebSocketServer({ server: http })
+const wss = new WebSocketServer({ noServer: true })
+
+http.on('upgrade', (req, socket, head) => {
+  // The handshake is where a hostile page would get in: browsers let any
+  // origin open a WebSocket to 127.0.0.1, so check who is asking.
+  if (!guard.sameSite(req) || !req.headers.origin || !guard.signedIn(req)) {
+    socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n')
+    return
+  }
+  wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req))
+})
 
 function send(ws: WebSocket, msg: ServerMessage): void {
   if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg))
@@ -454,19 +500,21 @@ const URL_SELF = `http://${HOST}:${PORT}`
 
 function openInBrowser(): void {
   if (process.env.TCV_NO_OPEN || process.platform !== 'darwin') return
-  spawnProcess('open', [URL_SELF], { stdio: 'ignore', detached: true }).unref()
+  spawnProcess('open', [guard.loginUrl], { stdio: 'ignore', detached: true }).unref()
+}
+
+/** The sign-in link is a secret: show it to a person, not to a log file others may read. */
+function announce(): void {
+  console.log(`[tcv] terminal-canvas en ${URL_SELF}`)
+  if (process.stdout.isTTY) console.log(`[tcv] abre ${guard.loginUrl}`)
+  if (!isLoopback(HOST)) {
+    console.warn(`[tcv] escuchando en ${HOST}: cualquiera en la red con el token controla tus terminales, y el tráfico va sin cifrar`)
+  }
 }
 
 /** Espera de reintento cuando el puerto está ocupado y toca esperarlo. */
 const RETRY_MS = 5000
 let waitingForPort = false
-
-// ws reenvía los errores del servidor http a su propia instancia, así que un
-// EADDRINUSE moriría aquí como 'error' sin capturar antes de que el manejador
-// de abajo alcance a reintentar.
-wss.on('error', (err: NodeJS.ErrnoException) => {
-  if (err.code !== 'EADDRINUSE') console.error('[tcv] websocket:', err)
-})
 
 http.on('error', (err: NodeJS.ErrnoException) => {
   if (err.code !== 'EADDRINUSE') throw err
@@ -495,7 +543,7 @@ http.on('error', (err: NodeJS.ErrnoException) => {
 // consume en el primer intento, así que un reintento exitoso sería mudo.
 http.on('listening', () => {
   waitingForPort = false
-  console.log(`[tcv] terminal-canvas en ${URL_SELF}`)
+  announce()
   openInBrowser()
 })
 

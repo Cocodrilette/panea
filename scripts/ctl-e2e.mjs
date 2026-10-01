@@ -8,6 +8,10 @@
  * Run with the canvas server listening on PORT.
  */
 import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
+import WebSocket from 'ws'
 
 const PORT = process.env.PORT ?? '7799'
 const LAB = 'tcve2e'
@@ -53,7 +57,12 @@ const exits = new Set()
 let tiles = []
 let ready = null
 
-const ws = new WebSocket(`ws://127.0.0.1:${PORT}`)
+// Signed in like the canvas: its origin, and the install token as the cookie.
+const token = readFileSync(join(homedir(), '.config/terminal-canvas/token'), 'utf8').trim()
+const ws = new WebSocket(`ws://127.0.0.1:${PORT}`, {
+  origin: `http://127.0.0.1:${PORT}`,
+  headers: { cookie: `tcv_${PORT}=${token}` },
+})
 const send = (m) => ws.send(JSON.stringify(m))
 ws.addEventListener('message', (ev) => {
   const m = JSON.parse(String(ev.data))

@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { chromium } from 'playwright'
 
 const OUT = process.env.SP
@@ -9,7 +12,9 @@ const errors = []
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()) })
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message))
 
-await page.goto(URL)
+// The token link signs the browser in, then redirects to the canvas.
+const token = readFileSync(join(homedir(), '.config/terminal-canvas/token'), 'utf8').trim()
+await page.goto(`${URL}?token=${token}`)
 await page.waitForSelector('.tile', { timeout: 8000 })
 await page.waitForTimeout(2500)
 
