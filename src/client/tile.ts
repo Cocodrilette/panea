@@ -130,7 +130,17 @@ export class Tile {
 
     this.term.onData((data) => handlers.onInput(this.spec.id, data))
     // Canvas-level shortcuts must win even while a terminal has the keyboard.
-    this.term.attachCustomKeyEventHandler((ev) => !(ev.metaKey || (ev.ctrlKey && ev.altKey)))
+    this.term.attachCustomKeyEventHandler((ev) => {
+      // xterm sends a bare \r for ctrl/shift+Enter, so Claude Code submits
+      // instead of breaking the line. ESC CR is what it reads as a newline
+      // (same as /terminal-setup configures), and a shell just inserts one.
+      if (ev.key === 'Enter' && (ev.ctrlKey || ev.shiftKey) && !ev.metaKey && !ev.altKey) {
+        if (ev.type === 'keydown') handlers.onInput(this.spec.id, '\x1b\r')
+        ev.preventDefault()
+        return false
+      }
+      return !(ev.metaKey || (ev.ctrlKey && ev.altKey))
+    })
     this.term.loadAddon(new WebLinksAddon())
 
     this.update(spec)
